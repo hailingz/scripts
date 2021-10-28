@@ -1,5 +1,5 @@
 #!/usr/bin/csh
-###### script tp concatenate multiple IODA output files to one ####
+###### script to concatenate multiple IODA output files to one ####
 ###### 20211026 Hailing Zhang and Fabio  Diniz #############
 module load nco
 set     TOP_DIR=/work2/noaa/da/hailingz/work/newinstru
