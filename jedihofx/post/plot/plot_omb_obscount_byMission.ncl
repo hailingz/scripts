@@ -5,7 +5,7 @@ load "~/lib/attache_labelbar.ncl"
 
 
 ; if multiple missions to be plotted in the same panel or not;
-plot_multi_mission = 0  ; 1 means in same panel, 0 on seperate panels
+plot_multi_mission = 1   ; 1 means in same panel, 0 on seperate panels
 ; if multiple missions to be plotted in the same panel or not;
 
 ;;;;;;;;;; plotting obs locations by QC tyopes;;;;;;
@@ -28,7 +28,6 @@ satid(1,1) = 825
 
 ;;;;;; preference of lines;;;;;;;;;
 colors_mis    = (/"black", "red", "blue", "darkgreen"/)
-thick_mis     = (/1.5,1.5,1.5,1.5/)
 ;;;;;; preference of lines;;;;;;;;;
 
  
@@ -61,7 +60,7 @@ levels      = new (max_level, float)
 levels      = fspan(0.0, vmax, max_level)
 nlevels     = dimsizes(levels)
 
-wks     = gsn_open_wks(outfig, "statistic_omb_byMission_"+starttime+"_"+endtime) 
+wks     = gsn_open_wks(outfig, "statistic_omb_obscount_byMission_"+starttime+"_"+endtime) 
 gsn_define_colormap(wks,"BkBlAqGrYeOrReViWh200"); 
 
 tob  = new((/nmis,max_level/), float)
@@ -111,11 +110,11 @@ end do
 rms  = where( rms.eq.0.0, rms@_FillValue, rms*100)
 bias = where(bias.eq.0.0,bias@_FillValue, bias*100)
 
-jj = 0.0
-do while ( max(tob).ge.10.0 )
-   tob=tob/10.0
-   jj=jj+1
-end do
+;jj = 0.0
+;do while ( max(tob).ge.10.0 )
+;   tob=tob/10.0
+;   jj=jj+1
+;end do
 
 res          = True
 res@gsnDraw  = False
@@ -152,28 +151,31 @@ res@lgJustification        = "TopLeft"
 res@tmXBMode              = "Manual"
 res@tmXTMode              = "Manual"
 res@tiYAxisString         = "Impact height (km)"
-res@xyDashPatterns         = 0
 
+res@xyDashPattern          = 0
+res@tmXBPrecision          = 1
+res@xyLineThicknesses      = 1.5
 resc = res
 resc@trXMinF             = 0.0
 resc@pmLegendDisplayMode = "Never"
+resc@xyDashPatterns      = (/2,2,2,2,2/)
+resc@gsnLeftStringFontHeightF  = 0.015
 
 resrms  = res
-resrms@tiXAxisString           = "(O-B)/B rms (%)"
+resrms@tiXAxisString            = "(O-B)/B rms (%)"
 resrms@trXMaxF                 = 15.0
 resrms@trXMinF                 = 0.0
 resrms@tmXBTickSpacingF        = 3.
-
+resrms@tmXBPrecision           = 2
 resbias = res
 resbias@tiXAxisString           = "(O-B)/B mean (%)"
 resbias@gsnXRefLine             = 0
-resbias@gsnXRefLineDashPattern  = 2
+resbias@gsnXRefLineDashPattern  = 0
 resbias@gsnXRefLineThicknessF   = 1.0
 resbias@trXMaxF                 = 9.0
 resbias@trXMinF                 = -9.0
 resbias@tmXBTickSpacingF        = 3.
 resbias@tmXBPrecision           = 1
-
 if (plot_multi_mission .eq. 1) then
   nplt  = 1
 else
@@ -182,20 +184,41 @@ end if
 plot   = new(nplt*2,graphic)
 
 if (plot_multi_mission .eq. 1) then
+   jj = 0.0
+   do while ( max(tob).ge.10.0 )
+     tob=tob/10.0
+     jj=jj+1
+   end do
+   resc@gsnLeftString      = "obs count (10~N~~S~"+jj+"~N~)"
+   resc@xyLineColors       = colors_mis
    resrms@xyLineColors     = colors_mis
    resbias@xyLineColors    = resrms@xyLineColors
    resrms@xyExplicitLegendLabels  =  missions
    resbias@xyExplicitLegendLabels =  missions
-   plot(0)  = gsn_csm_xy (wks, rms,levels,resrms)
-   plot(1)  = gsn_csm_xy (wks,bias,levels,resbias)
+   plot(0)  = gsn_csm_x2y (wks, rms,tob,levels, resrms,resc)
+   plot(1)  = gsn_csm_x2y (wks,bias,tob,levels,resbias,resc)
 else 
    do is = 0, nmis - 1
+      jj = 0.0
+      do while ( max(tob(is,:)).ge.10.0 )
+         tob(is,:)=tob(is,:)/10.0
+         jj=jj+1
+      end do
+      resc@trXMaxF             = max(tob(is,:))*1.01
+      if (resc@trXMaxF .lt. 2) then
+         resc@tmXTPrecision          = 2
+      else
+         resc@tmXTPrecision          = 1
+         resc@tmXTTickSpacingF       = 1.
+      end if
+      resc@gsnLeftString            = "obs count (10~N~~S~"+jj+"~N~)"
+      resc@xyLineColors             = colors_mis(is)
       resrms@xyLineColors           = colors_mis(is)
-      resbias@xyLineColors  = resrms@xyLineColors 
+      resbias@xyLineColors          = resrms@xyLineColors 
       resrms@xyExplicitLegendLabels =  missions(is)
       resbias@xyExplicitLegendLabels=  missions(is)
-      plot(is*2)   = gsn_csm_xy (wks, rms(is,:),levels,resrms)
-      plot(is*2+1) = gsn_csm_xy (wks,bias(is,:),levels,resbias)
+      plot(is*2)   = gsn_csm_x2y (wks, rms(is,:),tob(is,:),levels,resrms, resc)
+      plot(is*2+1) = gsn_csm_x2y (wks,bias(is,:),tob(is,:),levels,resbias,resc)
    end do 
 end if
 
