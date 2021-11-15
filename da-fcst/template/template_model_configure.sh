@@ -3,7 +3,7 @@ rm -f model_configure
 cat > model_configure <<EOF
 total_member:            1
 print_esmf:              ${print_esmf:-.false.}
-PE_MEMBER01:             $NTASKS_FV3
+PE_MEMBER01:             $NTASKS
 start_year:              ${tPDY:0:4}
 start_month:             ${tPDY:4:2}
 start_day:               ${tPDY:6:2}
