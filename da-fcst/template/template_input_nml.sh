@@ -10,8 +10,8 @@ cat > input.nml <<EOF
 /
 
 &atmos_model_nml 
-  blocksize = ${blocksize:-32}
-  chksum_debug = ${chksum_debug:-.false}
+  blocksize = ${blocksize:-32} 
+  chksum_debug = ${chksum_debug:-".false."}
   dycore_only = ${adiabatic:-".false."}
   fdiag = $FHOUT
   fhmax = $FHMAX
@@ -77,7 +77,7 @@ deflate_level=${deflate_level:-1}
   k_split = ${k_split:-2}
   n_split = ${n_split:-6}
   nwat = ${nwat:-2}
-  na_init = $na_init
+  na_init = ${na_init:-1}
   d_ext = 0.
   dnats = ${dnats:-0}
   fv_sg_adj = ${fv_sg_adj:-"450"}
@@ -103,14 +103,14 @@ deflate_level=${deflate_level:-1}
   hord_tr = ${hord_tr:-"8"}
   adjust_dry_mass = ${adjust_dry_mass:-".true."}
   dry_mass=${dry_mass:-98320.0}
-  consv_te = $consv_te
+  consv_te = ${consv_te:-1.0}
   do_sat_adj = ${do_sat_adj:-".false."}
   consv_am = .false.
   fill = .true.
   dwind_2d = .false.
   print_freq = $print_freq
   warm_start = $warm_start
-  no_dycore = $no_dycore
+  no_dycore=${no_dycore:-".false."}
   z_tracer = .true.
   agrid_vel_rst = ${agrid_vel_rst:-".true."}
   read_increment = ${read_increment:-".false."}
@@ -134,9 +134,9 @@ deflate_level=${deflate_level:-1}
 /
 
 &external_ic_nml
-  filtered_terrain = $filtered_terrain
+  filtered_terrain=${filtered_terrain:-".true."}
   levp = $LEVS
-  gfs_dwinds = $gfs_dwinds
+  gfs_dwinds=${gfs_dwinds:-".true."}
   checker_tr = .false.
   nt_checker = 0
   $external_ic_nml

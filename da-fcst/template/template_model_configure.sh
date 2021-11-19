@@ -3,14 +3,14 @@ rm -f model_configure
 cat > model_configure <<EOF
 total_member:            1
 print_esmf:              ${print_esmf:-.false.}
-PE_MEMBER01:             $NTASKS
+PE_MEMBER01:             $NTASKS_FV3
 start_year:              ${tPDY:0:4}
 start_month:             ${tPDY:4:2}
 start_day:               ${tPDY:6:2}
 start_hour:              ${tcyc}
 start_minute:            0
 start_second:            0
-fhrot:                   $IAU_FHROT
+fhrot:                   ${IAU_FHROT:0}
 nhours_fcst:             ${FHMAX:-6}
 RUN_CONTINUE:            ${RUN_CONTINUE:-.false.}
 ENS_SPS:                 .false.
@@ -49,5 +49,5 @@ nfhout:                  $FHOUT
 nfhmax_hf:               $FHMAX_HF
 nfhout_hf:               $FHOUT_HF
 nsout:                   $NSOUT
-iau_offset:              ${IAU_OFFSET}
+iau_offset:              ${IAU_OFFSET:-0}
 EOF
