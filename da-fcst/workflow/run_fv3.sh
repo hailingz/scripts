@@ -1,17 +1,13 @@
 #!/bin/ksh
 ################################################################################
 # set -x
-pwd=$(pwd)
-source ${pwd}/setupfv3.sh
-
-CDATE=$1
+source ${SCRIPT_DIR}/setupfv3.sh
 export PDY=$(echo $CDATE | cut -c1-8)
 export cyc=$(echo $CDATE | cut -c9-10)
 export PDY=$PDY
 export cyc=$cyc
-
 DATA=${TOP_DIR}/fv3temp
-ROTDIR=${TOP_DIR}/run/${EXP}/  
+ROTDIR=${TOP_DIR}/run/${EXPT}/  
 # Model config options
 export MEMBER=${MEMBER:-"-1"}  # deterministic
 [[ "$OUTPUT_FILETYPE" = "netcdf" ]] && affix="nc"
@@ -32,10 +28,10 @@ if [ ! -d $savedir ]; then mkdir -p $savedir; fi
 GDATE=$($NDATE -$assim_freq $CDATE)
 gPDY=$(echo $GDATE | cut -c1-8)
 gcyc=$(echo $GDATE | cut -c9-10)
-if [ $cycling -eq  .true.] ; then
-icdir=$ROTDIR/${CDATE}/jedi/output/analysis/
+if [ $cycling = .true. -a $CDATE != $INIT_DATE ]; then
+  icdir=$ROTDIR/${CDATE}/${DAmethod}/output/
 else
-icdir=$ROTDIR/${GDATE}/atmos
+  icdir=$ROTDIR/${GDATE}/atmos
 fi
 
 sCDATE=$($NDATE -3 $CDATE)
@@ -44,7 +40,7 @@ sPDY=$PDY
 scyc=$cyc
 export tPDY=$sPDY
 export tcyc=$cyc
-#echo $GDATE $gPDY $tcyc
+
 #-------------------------------------------------------
 
   # Link all (except sfc_data) restart files from $icdir
@@ -115,7 +111,7 @@ fi
 # >0 means new adiabatic pre-conditioning
 # <0 means older adiabatic pre-conditioning
 na_init=${na_init:-1}
-[[ $warm_start = ".true." ]] && na_init=0
+[[ $warm_start = ".true." ]] && export na_init=0
 
 if [ ${TYPE} = "nh" ]; then # non-hydrostatic options
   hydrostatic=".false."
@@ -190,24 +186,18 @@ $NCP $FIELD_TABLE field_table
 
 #------------------------------------------------------------------
 if [ $cplwav = ".false." ]; then
-  cp ${pwd}/nems.configure .
+  cp ${TEMPLATE_DIR}/nems.configure .
 else
-  sh ${TEMPLATE}/template_nems_configure.sh 
-fi
-# Set NTASKS_CFG to reflect cplwav
-NTASKS_CFG=$NTASKS_FV3
-echo $NTASKS_CFG
-if [ $cplwav = ".true." ]; then
-  NTASKS_CFG=$((NTASKS_FV3 + npe_wav))
+  sh ${TEMPLATE_DIR}/template_nems_configure.sh 
 fi
 
-sh ${TEMPLATE}/template_model_configure.sh
+sh ${TEMPLATE_DIR}/template_model_configure.sh
 
 atmos_model_nml=""
 if [ $RUN_CCPP = "YES" ]; then
  atmos_model_nml="ccpp_suite = $CCPP_SUITE"
 fi
-sh ${TEMPLATE}/template_input_nml.sh
+sh ${TEMPLATE_DIR}/template_input_nml.sh
 #------------------------------------------------------------------
 # make symbolic links to write forecast files directly in savedir
 cd $DATA
@@ -242,11 +232,11 @@ if [ $QUILTING = ".true." -a $OUTPUT_GRID = "gaussian_grid" ]; then
 fi
 
 #------------------------------------------------------------------
-# run the executable
-sh ${pwd}/template_fv3_job.sh fcst
+sh ${TEMPLATE_DIR}/template_fv3_job.sh fcst
 sbatch job.sh
-exit
-
+sh ${SCRIPT_DIR}/checkfile.sh $DATA/RESTART/fv_core.res.tile6.nc
+sh ${SCRIPT_DIR}/checkfile.sh $DATA/RESTART/coupler.res
+sh ${SCRIPT_DIR}/checkfile.sh $DATA/RESTART/phy_data.tile1.nc
 #------------------------------------------------------------------
 if [ $SEND = "YES" ]; then
 
