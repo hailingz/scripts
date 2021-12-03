@@ -3,7 +3,7 @@ echo "generating 3denvar yaml file"
 yaml=${DAmethod}.yaml
 if [ -e $yaml ]; then rm -f $yaml; fi
 
-BGNDATE=`$TOOL/da_advance_time.exe $CDATE -3`
+BGNDATE=$($NDATE -3 $CDATE)
 yyyy_b=`echo $BGNDATE | cut -c 1-4`
 mm_b=`echo $BGNDATE | cut -c 5-6`
 dd_b=`echo $BGNDATE | cut -c 7-8`
