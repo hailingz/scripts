@@ -152,7 +152,6 @@ variational:
       - fieldset: ${JEDIsrc}/fv3-jedi//test/Data/fieldsets/ufo.yaml
     diagnostics:
       departures: ombg
-  iterations:
   - ninner: $Ninter2
     gradient norm reduction: 1e-10
     test: on
