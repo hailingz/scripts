@@ -14,7 +14,7 @@ cost function:
   cost type: 3D-Var
   window begin: '${yyyy_b}-${mm_b}-${dd_b}T${hh_b}:00:00Z'
   window length: PT6H
-  analysis variables: &3dvars [ua,va,T,DELP,sphum,ice_wat,liq_wat,o3mr]
+  analysis variables: &3dvars [ua,va,t,delp,ps,sphum,ice_wat,liq_wat,o3mr,rainwat,snowwat,graupel,cld_amt]
   geometry:
     fms initialization:
        namelist filename: ${JEDIsrc}/fv3-jedi//test/Data/fv3files/fmsmpp.nml
@@ -37,8 +37,9 @@ cost function:
     filename_sfcd: ${yyyy}${mm}${dd}.${hh}0000.sfc_data.nc
     filename_sfcw: ${yyyy}${mm}${dd}.${hh}0000.fv_srf_wnd.res.nc
     filename_cplr: ${yyyy}${mm}${dd}.${hh}0000.coupler.res
-    state variables: [u,v,ua,va,T,DELP,sphum,ice_wat,liq_wat,o3mr,phis,
+    state variables: [u,v,ua,va,t,delp,sphum,ice_wat,liq_wat,o3mr,phis,
                       slmsk,sheleg,tsea,vtype,stype,vfrac,stc,smc,snwdph,
+                      rainwat,snowwat,graupel,cld_amt,DZ,W,
                       u_srf,v_srf,f10m]
   background error:
     covariance model: ensemble
