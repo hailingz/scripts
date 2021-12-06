@@ -20,7 +20,11 @@ if [ ! -d $DATA ]; then
 fi
 cd $DATA || exit 8
 mkdir -p $DATA/INPUT
+if [ ! -d $DATA/RESTART ]; then
 mkdir -p $DATA/RESTART
+else
+rm $DATA/RESTART/*
+fi
 #-------------------------------------------------------
 savedir=${ROTDIR}/${CDATE}/atmos
 if [ ! -d $savedir ]; then mkdir -p $savedir; fi
@@ -52,9 +56,22 @@ export tcyc=$cyc
          $NLN $file $DATA/INPUT/$file2
       fi
     done
-
+    $NLN ${ROTDIR}/${GDATE}/atmos/RESTART/${sPDY}.${scyc}0000.fv_core.res.nc $DATA/INPUT/fv_core.res.nc
 # # Link sfcanl_data restart files from $savedir
-    for file in $(ls $icdir/RESTART/${sPDY}.${scyc}0000.*.nc); do
+
+#    for file in $(ls $icdir/RESTART/${sPDY}.${scyc}0000.*.nc); do
+#      file2=$(echo $(basename $file))
+#      file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
+#      fsufanl=$(echo $file2 | cut -d. -f1)
+#      if [ $fsufanl = "sfcanl_data" ] ||  [ $fsufanl = "sfc_data" ]; then
+#        file2=$(echo $file2 | sed -e "s/sfcanl_data/sfc_data/g")
+#        $NLN $file $DATA/INPUT/$file2
+#      fi
+#    done
+
+# # Link sfc_data restart files from bkg
+
+    for file in $(ls ${ROTDIR}/${GDATE}/atmos/RESTART/${sPDY}.${scyc}0000.*.nc); do
       file2=$(echo $(basename $file))
       file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
       fsufanl=$(echo $file2 | cut -d. -f1)

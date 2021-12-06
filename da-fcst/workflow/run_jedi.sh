@@ -20,3 +20,7 @@ sh ${TEMPLATE_DIR}/template_${DAmethod}_yaml.sh "${OPTS[@]}"
 ln -sf ${BUMP_DIR}/${BUMP_name} . 
 sh  ${TEMPLATE_DIR}/template_${DAmethod}_job.sh job_${CDATE}.sh  ${DAmethod}  fv3jedi_var.x
 sbatch job_${CDATE}.sh 
+sh ${SCRIPT_DIR}/checkfile.sh ${analysisout}/${yyyy}${mm}${dd}.${hh}0000.fv_core.res.tile1.nc
+sh ${SCRIPT_DIR}/checkfile.sh ${analysisout}/${yyyy}${mm}${dd}.${hh}0000.fv_core.res.tile2.nc
+sh ${SCRIPT_DIR}/checkfile.sh ${analysisout}/${yyyy}${mm}${dd}.${hh}0000.fv_core.res.tile3.nc
+sleep 60
