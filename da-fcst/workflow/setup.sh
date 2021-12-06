@@ -6,8 +6,8 @@ export TOP_DIR=/work/noaa/da/hailingz/work/c2nwp
 export SCRIPT_DIR=`pwd`
 export EXPT=ctrl
 export INIT_DATE=2021010318
-# edit your template directory
-export TEMPLATE_DIR=${TOP_DIR}/template
+# edit your template directory if needed
+export TEMPLATE_DIR=${TOP_DIR}/scripts/da-fcst/template
 export assim_freq=6
 export cycling=.true.
 export CASE=C384
