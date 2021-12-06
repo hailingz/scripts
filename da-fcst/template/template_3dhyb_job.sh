@@ -27,8 +27,8 @@ ulimit -v unlimited
 
 export SLURM_EXPORT_ENV=ALL
 export HDF5_USE_FILE_LOCKING=FALSE
-export OOPS_DEBUG=1
-export OOPS_TRACE=1
+export OOPS_DEBUG=$OOPS_DEBUG
+export OOPS_TRACE=$OOPS_TRACE
 
 #-------------------------------------------------------------------------------
  srun --ntasks=$NTASKS_JEDI --cpu_bind=core --distribution=block:block ${JEDIbin}/${EXE} ${yaml}.yaml log/log_${yaml}

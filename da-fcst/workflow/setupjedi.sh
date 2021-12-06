@@ -27,6 +27,10 @@ export Ninter1=50
 export Ninter2=25
 export minimizer=DRPLanczos
 
+#--------------- JEDI run time log print --------------
+export OOPS_TRACE=0
+export OOPS_DEBUG=0
+
 #---------------JEDI resources-------------------------
 export JEDIsrc=/work/noaa//da/hailingz/jedi/src/fv3-bundle_202110
 export JEDIbin=/work/noaa//da/hailingz/jedi/build/fv3-bundle_202110/bin
