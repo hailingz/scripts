@@ -60,8 +60,6 @@ fi
 
 ### CASE config
 ###  -------------------------------------------------------------
-export CASE=C384
-
 #- fv3 layout and computing resource 
 export ntiles=6
 export layout_x=6
