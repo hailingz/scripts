@@ -5,7 +5,8 @@
 export TOP_DIR=/work/noaa/da/hailingz/work/c2nwp
 export SCRIPT_DIR=`pwd`
 export EXPT=ctrl
-export INIT_DATE=2021010400
+export INIT_DATE=2021010318
+# edit your template directory
 export TEMPLATE_DIR=${TOP_DIR}/template
 export assim_freq=6
 export cycling=.true.
@@ -16,7 +17,6 @@ export layout=6
 export NTASKS_JEDI=$((layout*layout*6))
 export DAmethod=3dhyb
 export SEND="YES"
-export TOOL="${HOME}/lib/"
 export NDATE=/apps/contrib/NCEPLIBS/orion/utils/prod_util.v1.2.0/exec/ndate
 export NLN="ln -sf"
 export NCP="cp "
