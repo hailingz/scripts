@@ -17,6 +17,7 @@ export layout=6
 export NTASKS_JEDI=$((layout*layout*6))
 export DAmethod=3dhyb
 export SEND="YES"
+# ndate could be gone if using date math from Ben
 export NDATE=/apps/contrib/NCEPLIBS/orion/utils/prod_util.v1.2.0/exec/ndate
 export NLN="ln -sf"
 export NCP="cp "
