@@ -1,7 +1,7 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
-load "~/lib/advance_cymdh.ncl"
-load "~/lib/attache_labelbar.ncl"
+load "/home/hailingz/lib/advance_cymdh.ncl"
+load "/home/hailingz/attache_labelbar.ncl"
 
 
 ; if multiple missions to be plotted in the same panel or not;
