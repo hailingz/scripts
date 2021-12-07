@@ -25,7 +25,7 @@ export BackgroundCheck="Background Check RONBAM"
 #--------------- DA config  -------------------------
 export Ninter1=50 
 export Ninter2=25
-export minimizer=DRPLanczos
+export minimizer=DRIPCG
 
 #--------------- JEDI run time log print --------------
 export OOPS_TRACE=0
