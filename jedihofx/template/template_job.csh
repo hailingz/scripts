@@ -13,6 +13,7 @@ cat > $jobname  <<EOF
 #SBATCH -q batch
 #SBATCH --ntasks $NP
 #SBATCH --cpus-per-task=1
+#SBATCH --exclusive
 #SBATCH -t 20:00
 #SBATCH --output=stdout_${DATE}.%j
 #-------------------------------------------------------------------------------
