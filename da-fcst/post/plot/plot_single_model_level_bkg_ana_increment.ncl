@@ -1,7 +1,5 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
-load "/home/hailingz/lib/advance_cymdh.ncl"
-load "/home/hailingz/util/attache_labelbar.ncl"
 load "/home/hailingz/util/panel_two_sets.ncl"
 
 
