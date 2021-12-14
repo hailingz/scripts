@@ -15,7 +15,7 @@ anatime    = "2021010406"
 assim_freq = 6
 hh         = systemfunc("echo "+anatime+" |cut -c9-10")
 
-;;;;;;;;;; directories
+;;;;;;;;;; EDIT directories
 TOPDir  = "hui"
 DATADir = "/work/noaa/da/hailingz/work/"+TOPDir+"/run/ctrl/"
 ; forecast initilization time
