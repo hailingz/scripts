@@ -1,0 +1,27 @@
+#!jinja2    
+
+    # ------------------------------------------------------------
+    # Experiment Setup
+    # ------------------------------------------------------------
+            
+    [[SetupExperiment]]
+        title = "Prepare the initial conditions to start an experiment."
+        description = """ 
+            Perform a few checks to locate the initial conditions
+            as either spectral histories or model flat files for
+            an experiment cold-start.
+        """ 
+        script = """
+            ${OPS_SCRIPTS}/setup_experiment.ksh $CRDATE $TEMPDIR
+            ${OPS_SCRIPTS}/repository_links.sh $STATIC_DATA_REPOS $DATA_REPOS
+            ${OPS_SCRIPTS}/convert_assimilate_cards_HA.sh ${AR_HOME}/etc/assimilate $HIGH_ALTITUDE_NAVGEM
+            ${OPS_SCRIPTS}/convert_assimilate_cards_HA.sh ${AR_HOME}/etc/assimilate/no_correlated_error $HIGH_ALTITUDE_NAVGEM
+        """ 
+            
+        [[[environment]]]
+            ICS_HOME = $WORKDIR/ics
+            SER_RUN  = ' '            
+            
+        [[[job]]]
+            batch system = background
+

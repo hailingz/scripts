@@ -1,0 +1,21 @@
+{% set PBS_QUEUE = "batch" %}
+{% set PBS_PARTITION = "orion" %}
+{% set HPC_ACCOUNT = "da-cpu" %}
+{% set WORKDIR = "$WORKDIR" %}
+{% set PBS_DIRECTIVE = "select=3:ncpus=40:mpiprocs=40,walltime=1:00:00" %}
+{% set PBS_DIRECTIVE_QC = "select=1:ncpus=44:mpiprocs=44,walltime=0:45:00" %}
+{% set PBS_DIRECTIVE_OUTPUT = "select=1:ncpus=44:mpiprocs=44,walltime=1:00:00" %}
+{% set PBS_DIRECTIVE_LONG_FORECAST = "select=7:ncpus=44:mpiprocs=44,walltime=2:30:00" %}
+#SBATCH --ntasks $NTASKS_JEDI
+#SBATCH --cpus-per-task=1
+#SBATCH --exclusive
+#SBATCH -t 80:00
+{% set MPIARG1 = "-n 308 " %}
+{% set MPIARG_MODEL_ADJ = "-n 44 " %}
+{% set MPIARG_TRJ = "-n 44 " %}
+{% set MPIARG_QC = "-n 44 " %}
+{% set MPIARG_LARGE_QC = "-n 88 " %}
+{% set MPIARG_ENSEMBLE_FORECAST = "-n 44 " %}
+{% set MPIARG_OUT = "-n 44 " %}
+{% set NUM_MEMBERS = 80 %}
+

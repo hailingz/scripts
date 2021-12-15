@@ -1,0 +1,120 @@
+#!jinja2
+
+#===============================================================================
+# To run this suite, you *will* need to change the following variables:
+{% set email_address = "your.email@address.here" %}
+{% set navgem_code_location = "/path/to/JEDI/code" %}
+#===============================================================================
+
+title = " run a cycling JEDI-based DA system "
+description = "Forecast + Observation Ingest + H(x) + Solver"
+
+############################
+%include inc/directives.rc
+############################
+
+[cylc]
+    UTC mode = True
+    [[environment]]
+        # Used by event handler notification scripts
+        MAIL_ADDRESS = {{ email_address }}
+
+[scheduling]
+    initial cycle point constraints = T00,T06,T12,T18
+    final cycle point constraints   = T00,T06,T12,T18
+    initial cycle point             = 20151215T00
+    final cycle point               = 20151218T00
+    max active cycle points         = 5
+
+
+    [[special tasks]]
+        # these tasks can be told to run at a delay from real time
+#       clock-triggered = RetrieveAuxData(PT48H)
+        # these tasks are forced to run sequentially even if all dependencies are satisfied
+#       sequential      = BiasCorrection
+
+    [[dependencies]]
+
+        # Set up the first cold-start cycle.  
+        # This first bootstrap cycle skips the data assimilation processing 
+        # and starts the forecast model to generate a background 
+        # for the first full data assimilation cycle 
+        [[[R1]]]
+            graph  = """
+                # Need to set up directories first
+                SetupExperiment   => InitializeBias
+                SetupExperiment   => RetrieveAuxData
+                """
+        # This defines normal cycling 
+        # components for observation processing, data assimilation, forecast
+        [[[^+PT6H/PT6H]]]
+            graph  = """
+                # Observation processing
+                # Note that more recent prep programs make use of the outer loop
+                # trajectories directly instead of half-degree flat files, which
+                """
+
+        # These are the tasks that *always* cycle every 6 hours, 
+        # regardlessof whether the cycle is a cold-start cycle or not
+#       [[[PT6H]]]
+#           graph = """
+#               RetrieveAuxData => GetAGRMET
+#               GetAGRMET => GetSST
+#               """
+
+[runtime]
+    [[root]]
+        retry delays = 2*PT5M    # Try again right away, then wait 5 minutes
+        init-script = """
+            umask 022
+            ulimit -c 0
+            ulimit -s unlimited
+            set -x
+            """
+        pre-script = """
+            . $AR_HOME/src/arnrljobs/${MACHINE_DEF_FILE}
+            . $AR_HOME/src/arnrljobs/ar_setup
+            """
+        [[[simulation mode]]]
+            run time range = PT2S, PT3S # in simulation mode, 2 seconds per task
+
+        [[[job]]]
+            batch system = slurm
+            execution time limit = PT1H
+        [[[directives]]]
+            --nodes = 5  # JEDI NTASKS?
+            --exclusive
+            --cpus-per-task = 1
+            #--ntasks $NTASKS_JEDI
+            --account = {{ HPC_ACCOUNT }}
+            -q = {{ PBS_QUEUE }}
+            -p = {{ PBS_PARTITION }}
+            -l = {{ PBS_DIRECTIVE }}
+            -S = "/bin/ksh"
+            -W = "umask=022"
+
+        [[[environment]]] 
+            LOG_DIR  = $CYLC_SUITE_SHARE_DIR/$CYLC_TASK_CYCLE_POINT/logs
+
+            ARCHIVE_REPOS = {{ ARCHIVE_REPOS }}
+            WORKDIR =  {{ WORKDIR }}
+            HPC_ACCOUNT =  {{ HPC_ACCOUNT }}
+            MACHINE_DEF_FILE =  {{ MACHINE_DEF_FILE }}
+
+            CYLC_SUITE_REG_PATH = "${CYLC_SUITE_NAME//.//}"
+            EXP_ID   = $(echo $CYLC_SUITE_NAME | awk -F. '{print $NF}')
+            CRDATE   = $(cylc cycle-point --template=%Y%m%d%H)
+            RUN      = $WORKDIR/$CYLC_SUITE_REG_PATH
+            AR_HOME  = {{ navgem_code_location }}
+            TEMPDIR  = $WORKDIR/scratch/$CYLC_SUITE_REG_PATH
+
+        [[[event hooks]]]
+            failed handler            = cylc email-task
+            submission failed handler = cylc email-task
+
+###############################################################
+# included tasks must be placed here in the runtime section
+# and preferably after the root section
+###############################################################
+%include inc/JEDI-tasks.rc
+
