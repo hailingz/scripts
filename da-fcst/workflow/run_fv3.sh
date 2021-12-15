@@ -6,7 +6,7 @@ export PDY=$(echo $CDATE | cut -c1-8)
 export cyc=$(echo $CDATE | cut -c9-10)
 export PDY=$PDY
 export cyc=$cyc
-DATA=${TOP_DIR}/fv3temp
+DATA=${TOP_DIR}/fv3scratch/${EXPT}
 ROTDIR=${TOP_DIR}/run/${EXPT}/  
 # Model config options
 export MEMBER=${MEMBER:-"-1"}  # deterministic
