@@ -1,8 +1,10 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "/home/hailingz/lib/advance_cymdh.ncl"
-load "/home/hailingz/attache_labelbar.ncl"
+load "/home/hailingz/util/attache_labelbar.ncl"
 
+
+;;; see statistic_omb_obscount_byMission_2021010406_2021010406.pdf for reference  ;;
 
 ; if multiple missions to be plotted in the same panel or not;
 plot_multi_mission = 0   ; 1 means in same panel, 0 on seperate panels
@@ -10,10 +12,10 @@ plot_multi_mission = 0   ; 1 means in same panel, 0 on seperate panels
 
 ;;;;;;;;;; plotting obs locations by QC tyopes;;;;;;
 layout  = 6
-nfile   = stringtointeger(layout^3)
-DATADir = "/work/noaa/da/hailingz/work/c2nwp/run/ctrl/"
+nfile   = stringtointeger(layout^2*6) 
+DATADir = "/work/noaa/da/hailingz/work/hui/run/ctrl/"
 fmt     =  "gnssro_NBAM"
-outfig  = "x11"
+outfig  = "pdf"
 
 ;;;; EDIT YOUR SELECTION of satellites and satellite id ;;;;
 missions   = (/"  C2", "  K5"/)
