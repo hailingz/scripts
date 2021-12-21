@@ -5,17 +5,18 @@ export SDATE=2021010400
 export EDATE=2021010406
 
 export CDATE=$SDATE
-while [ $CDATE -le $EDATE ]; do
-
-  export yyyy=`echo $CDATE | cut -c 1-4`
-  export mm=`echo $CDATE | cut -c 5-6`
-  export dd=`echo $CDATE | cut -c 7-8`
-  export hh=`echo $CDATE | cut -c 9-10`
-  export PREDATE=$($NDATE -$assim_freq $CDATE)
-  export yyyymmdd_pre=`echo $PREDATE | cut -c 1-8`
-  export hh_pre=`echo $PREDATE | cut -c 9-10`
+while (( $CDATE <= $EDATE )); do
+  export yyyy=${CDATE:0:4}
+  export mm=${CDATE:4:2}
+  export dd=${CDATE:6:2}
+  export hh=${CDATE:8:2}
+  export PREDATE=$( date -u --date="-${assim_freq} hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
+  export yyyymmdd_pre=${PREDATE:0:8}
+  export hh_pre=${PREDATE:8:2}
+  # run DA
   sh run_jedi.sh $CDATE
+  # run the NWP model
   sh run_fv3.sh $CDATE
-  export CDATE=$($NDATE $assim_freq $CDATE)
-
+  # advance date
+  export CDATE=$(date -u --date="${assim_freq} hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
 done
