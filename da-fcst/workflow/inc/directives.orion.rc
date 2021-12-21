@@ -19,3 +19,5 @@
 {% set MPIARG_OUT = "-n 44 " %}
 {% set NUM_MEMBERS = 80 %}
 
+{% set WORKDIR = "/work/noaa/da/${USER}" %}
+{% set CYCLING_SCRIPT_HOME  = "${WORKDIR}/work/JCSDA/JEDI/fv3-scripts" %}

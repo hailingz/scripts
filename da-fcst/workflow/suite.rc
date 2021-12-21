@@ -3,7 +3,7 @@
 #===============================================================================
 # To run this suite, you *will* need to change the following variables:
 {% set email_address = "your.email@address.here" %}
-{% set navgem_code_location = "/path/to/JEDI/code" %}
+{% set jedi_code_location = "/path/to/JEDI/code" %}
 #===============================================================================
 
 [meta]
@@ -23,8 +23,8 @@
 [scheduling]
     initial cycle point constraints = T00,T06,T12,T18
     final cycle point constraints   = T00,T06,T12,T18
-    initial cycle point             = 20151215T00
-    final cycle point               = 20151218T00
+    initial cycle point             = 20210103T18
+    final cycle point               = 20210104T12
     max active cycle points         = 5
 
 
@@ -36,26 +36,30 @@
 
     [[dependencies]]
 
-        # Set up the first cold-start cycle.  
-        # This first bootstrap cycle skips the data assimilation processing 
-        # and starts the forecast model to generate a background 
-        # for the first full data assimilation cycle 
+        # Set up the first cold-start cycle.
+        # This first bootstrap cycle skips the data assimilation processing
+        # and starts the forecast model to generate a background
+        # for the first full data assimilation cycle
         [[[R1]]]
             graph  = """
                 # Need to set up directories first
-                SetupExperiment   => InitializeBias
-                SetupExperiment   => RetrieveAuxData
+                ColdPrepJEDI      => ColdRunJEDI
+#               ColdRunJEDI       => ColdPrepForecast
+#               ColdPrepForecast  => ColdRunForecast
                 """
-        # This defines normal cycling 
+        # This defines normal cycling
         # components for observation processing, data assimilation, forecast
         [[[^+PT6H/PT6H]]]
             graph  = """
-                # Observation processing
-                # Note that more recent prep programs make use of the outer loop
-                # trajectories directly instead of half-degree flat files, which
+                # Do the main NWP cycle
+                ColdRunForecast[-PT6H]  => PrepJEDI
+                RunForecast[-PT6H]  => PrepJEDI
+                PrepJEDI:succeed-all      => RunJEDI
+#               RunJEDI           => PrepForecast
+#               PrepForecast      => RunForecast
                 """
 
-        # These are the tasks that *always* cycle every 6 hours, 
+        # These are the tasks that *always* cycle every 6 hours,
         # regardlessof whether the cycle is a cold-start cycle or not
 #       [[[PT6H]]]
 #           graph = """
@@ -73,8 +77,7 @@
             set -x
             """
         pre-script = """
-            . $AR_HOME/src/arnrljobs/${MACHINE_DEF_FILE}
-            . $AR_HOME/src/arnrljobs/ar_setup
+            . ${SCRIPT_DIR}/setup.sh
             """
         [[[simulation mode]]]
             run time range = PT2S, PT3S # in simulation mode, 2 seconds per task
@@ -83,11 +86,11 @@
             batch system = slurm
             execution time limit = PT1H
         [[[directives]]]
-            --nodes = 5  # JEDI NTASKS?
-            --exclusive
-            --cpus-per-task = 1
-            #--ntasks $NTASKS_JEDI
-            --account = {{ HPC_ACCOUNT }}
+#           --nodes = 5  # JEDI NTASKS?
+#           --exclusive
+#           --cpus-per-task = 1
+#           #--ntasks $NTASKS_JEDI
+#           --account = {{ HPC_ACCOUNT }}
             -q = {{ PBS_QUEUE }}
             -p = {{ PBS_PARTITION }}
             -l = {{ PBS_DIRECTIVE }}
@@ -95,19 +98,34 @@
             -W = "umask=022"
 
         [[[environment]]] 
-            LOG_DIR  = $CYLC_SUITE_SHARE_DIR/$CYLC_TASK_CYCLE_POINT/logs
+#           LOG_DIR  = $CYLC_SUITE_SHARE_DIR/$CYLC_TASK_CYCLE_POINT/logs
 
-            ARCHIVE_REPOS = {{ ARCHIVE_REPOS }}
             WORKDIR =  {{ WORKDIR }}
             HPC_ACCOUNT =  {{ HPC_ACCOUNT }}
-            MACHINE_DEF_FILE =  {{ MACHINE_DEF_FILE }}
+
+            USE_METASCHEDULAR   = T
+
+####        ROTDIR =    # need to define this
+            CYCLING_SCRIPT_HOME  = {{ CYCLING_SCRIPT_HOME }}
+            SCRIPT_DIR    = "${CYCLING_SCRIPT_HOME}/da-fcst/workflow"
+            TEMPLATE_DIR  = "${CYCLING_SCRIPT_HOME}/da-fcst/template"
 
             CYLC_SUITE_REG_PATH = "${CYLC_SUITE_NAME//.//}"
-            EXP_ID   = $(echo $CYLC_SUITE_NAME | awk -F. '{print $NF}')
-            CRDATE   = $(cylc cycle-point --template=%Y%m%d%H)
-            RUN      = $WORKDIR/$CYLC_SUITE_REG_PATH
-            AR_HOME  = {{ navgem_code_location }}
-            TEMPDIR  = $WORKDIR/scratch/$CYLC_SUITE_REG_PATH
+            EXPT     = $(echo $CYLC_SUITE_NAME | awk -F. '{print $NF}')
+            SCRATCH  = ${WORKDIR}/scratch/${CYLC_SUITE_REG_PATH}
+            TOP_DIR  = ${WORKDIR}/${CYLC_SUITE_REG_PATH}
+            CDATE    = $(cylc cycle-point --template=%Y%m%d%H)
+            INIT_DATE= $(cylc cycle-point ${CYLC_SUITE_INITIAL_CYCLE_POINT} --template=%Y%m%d%H)
+            DATA_DIR = ${TOP_DIR}/Data
+            BUMP_DIR = ${TOP_DIR}/Data/bump
+
+            DAmethod    =  3dhyb
+            RES         =  384
+            CASE        =  C${RES}
+            assim_freq  =  6
+            PREDATE       = $(cylc cycle-point --offset-hours=$assim_freq --template=%Y%m%d%H)
+            yyyymmdd_pre  = $(cylc cycle-point --offset-hours=$assim_freq --template=%Y%m%d)
+            hh_pre        = $(cylc cycle-point --offset-hours=$assim_freq --template=%H)
 
         [[[event hooks]]]
             failed handler            = cylc email-task
@@ -118,4 +136,4 @@
 # and preferably after the root section
 ###############################################################
 %include inc/JEDI-tasks.rc
-
+%include inc/FCST-tasks.rc
