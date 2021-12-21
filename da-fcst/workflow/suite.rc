@@ -6,8 +6,9 @@
 {% set navgem_code_location = "/path/to/JEDI/code" %}
 #===============================================================================
 
-title = " run a cycling JEDI-based DA system "
-description = "Forecast + Observation Ingest + H(x) + Solver"
+[meta]
+    title = " run a cycling JEDI-based DA system "
+    description = "Forecast + Observation Ingest + H(x) + Solver"
 
 ############################
 %include inc/directives.rc

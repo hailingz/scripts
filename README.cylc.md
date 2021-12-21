@@ -28,6 +28,9 @@ process pool size = 4
 #   and scripts used to run system
 #   modify the starting dates
 
+# the full cylc manual can be found here:
+# https://cylc.github.io/cylc-doc/stable/html/index.html
+
 # register the suite
 cylc reg jedi.run.experiment.name  $PWD
 
