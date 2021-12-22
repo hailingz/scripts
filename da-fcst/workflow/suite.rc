@@ -123,9 +123,9 @@
             RES         =  384
             CASE        =  C${RES}
             assim_freq  =  6
-            PREDATE       = $(cylc cycle-point --offset-hours=$assim_freq --template=%Y%m%d%H)
-            yyyymmdd_pre  = $(cylc cycle-point --offset-hours=$assim_freq --template=%Y%m%d)
-            hh_pre        = $(cylc cycle-point --offset-hours=$assim_freq --template=%H)
+            PREDATE       = $(cylc cycle-point --offset-hours=-$assim_freq --template=%Y%m%d%H)
+            yyyymmdd_pre  = $(cylc cycle-point --offset-hours=-$assim_freq --template=%Y%m%d)
+            hh_pre        = $(cylc cycle-point --offset-hours=-$assim_freq --template=%H)
 
         [[[event hooks]]]
             failed handler            = cylc email-task
