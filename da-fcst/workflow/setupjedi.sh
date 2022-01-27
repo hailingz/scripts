@@ -3,7 +3,11 @@
 # set up JEDI DA
 # H.Zhang 202111
 
-source ./setup.sh
+USE_METASCHEDULAR=${USE_METASCHEDULAR:-F}
+
+if [[ ${USE_METASCHEDULAR} == F ]]; then
+  source ./setup.sh
+fi
 
 #---------------      set up experiment     ---------------
 export ROoper=NBAM
@@ -38,8 +42,10 @@ export JEDIopt=/work/noaa/da/jedipara/opt/modules
 export JEDImod=/work/noaa/da/jedipara/opt/modules/modulefiles/core
 
 #---------------files-------------------------
-export DATA_DIR=${TOP_DIR}/Data
-export BUMP_DIR=${TOP_DIR}/Data/bump     
+if [[ ${USE_METASCHEDULAR} == F ]]; then
+  export DATA_DIR=${TOP_DIR}/Data
+  export BUMP_DIR=${TOP_DIR}/Data/bump
+fi
 export BUMP_name=bump${layout}_c${RES}_$localization
 export FIX_path=${DATA_DIR}/files
 export radiodir=${DATA_DIR}/obs/oper/PT6H

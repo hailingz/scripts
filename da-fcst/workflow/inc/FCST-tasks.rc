@@ -1,0 +1,52 @@
+#!jinja2    
+
+    # ------------------------------------------------------------
+    # Task definitions for executing a Environmental Forecast
+    # ------------------------------------------------------------
+
+    [[SetupForecast]]
+        title = "Call the templates to set up environment and create job script"
+        description = """
+                Do various setup tasks for the forecast model
+        """
+        pre-script = """
+            . ${SCRIPT_DIR}/setup.sh
+            . ${SCRIPT_DIR}/setupfv3.sh
+            """
+        [[[environment]]]
+            PDY       = $(cylc cycle-point --template=%Y%m%d)
+            cyc       = $(cylc cycle-point --template=%H)
+            DATA      = ${TOP_DIR}/fv3temp
+            ROTDIR    = ${TOP_DIR}/run/${EXPT}/
+
+    [[PrepForecast]]
+        inherit = SetupForecast
+        title = "Create the Forecast script to be run"
+        description = """
+                Call a templating routine to setup Forecast
+                for particular cycle and configuration
+        """
+        script = """
+            bash ${SCRIPT_DIR}/run_fv3.sh
+            [[ ! -d ${TOP_DIR}/${CDATE} ]] && mkdir -p ${TOP_DIR}/${CDATE}
+            cp diag_table      ${TOP_DIR}/${CDATE}/.
+            cp data_table      ${TOP_DIR}/${CDATE}/.
+            cp field_table     ${TOP_DIR}/${CDATE}/.
+            cp nems.configure  ${TOP_DIR}/${CDATE}/.
+            cp model_configure ${TOP_DIR}/${CDATE}/.
+            cp input.nml       ${TOP_DIR}/${CDATE}/.
+            cp job.sh          ${TOP_DIR}/${CDATE}/job_fcst_${CDATE}.sh
+        """ 
+
+        [[[job]]]
+            batch system = background
+
+    [[RunForecast]]
+        inherit = SetupForecast
+        title = "Run the Forecast"
+        description = """
+                Run the Forecast
+        """
+        script = """
+            bash ${TOP_DIR}/${CDATE}/job_fcst_${CDATE}.sh
+        """

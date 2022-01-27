@@ -1,0 +1,86 @@
+#!jinja2    
+
+    # ------------------------------------------------------------
+    # Task definitions for the JEDI cycle
+    # ------------------------------------------------------------
+
+
+    [[SetupJEDI]]
+        title = "Create the JEDI script to be run"
+        description = """
+                Call a templating routine to setup JEDI
+                for particular cycle and configuration
+        """
+        pre-script = """
+            . ${SCRIPT_DIR}/setup.sh
+            . ${SCRIPT_DIR}/setupjedi.sh
+            """
+        [[[environment]]]
+            OPTS = ("vertlayer:full"  "use_compress:1"  "super_ref_qc:NBAM"  "sr_steps:2")
+
+    [[PrepJEDI]]
+        inherit = SetupJEDI
+        title = "Create the JEDI script to be run"
+        description = """
+                Call a templating routine to setup JEDI
+                for particular cycle and configuration
+        """
+        script = """
+            [[ ! -d ${rundir} ]]       &&  mkdir -p ${rundir}
+            [[ ! -d ${rundir}/log ]]   &&  mkdir -p ${rundir}/log
+            [[ ! -d ${hofxout} ]]      &&  mkdir -p ${hofxout}
+            [[ ! -d ${analysisout} ]]  &&  mkdir -p ${analysisout}
+
+            # call templating script
+            sh ${TEMPLATE_DIR}/template_${DAmethod}_yaml.sh "${OPTS[@]}"
+            ln -sf ${BUMP_DIR}/${BUMP_name} .
+            sh ${TEMPLATE_DIR}/template_${DAmethod}_job.sh job_${CDATE}.sh  ${DAmethod}  fv3jedi_var.x
+            cp job_${CDATE}.sh ${TOP_DIR}/${CDATE}/.
+        """ 
+
+        [[[environment]]]
+            rundir = ${TOP_DIR}/${CDATE}    # can use cylc workdir?
+            hofxout = ${rundir}/output/hofx
+            analysisout = ${rundir}/output/RESTART
+            BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
+            ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}
+
+        [[[job]]]
+            batch system = background
+
+    [[ColdPrepJEDI]]
+        inherit = PrepJEDI
+        title = "Create the Initial time JEDI script to be run"
+        description = """
+                Call a templating routine to setup JEDI
+                for particular cycle and configuration
+        """
+        [[[environment]]]
+            BKG_path  =  ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}/mem001/RESTART
+
+
+    [[RunJEDI]]
+        inherit = SetupJEDI
+        title = "Run the JEDI observation processing and solver"
+        description = """
+                Run the JEDI solver
+        """
+        script = """
+            bash ${TOP_DIR}/${CDATE}/job_${CDATE}.sh
+        """
+
+        [[[environment]]]
+            rundir = ${TOP_DIR}/${CDATE}    # can use cylc workdir?
+            hofxout = ${rundir}/output/hofx
+            analysisout = ${rundir}/output/RESTART
+            BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
+            ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}
+
+    [[ColdRunJEDI]]
+        inherit = RunJEDI
+        title = "Run the Cold start of JEDI observation processing and solver"
+        description = """
+                Run the JEDI solver
+        """
+        [[[environment]]]
+            BKG_path  =  ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}/mem001/RESTART
