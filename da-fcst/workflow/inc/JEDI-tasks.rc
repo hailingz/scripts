@@ -30,11 +30,22 @@
             [[ ! -d ${rundir}/log ]]   &&  mkdir -p ${rundir}/log
             [[ ! -d ${hofxout} ]]      &&  mkdir -p ${hofxout}
             [[ ! -d ${analysisout} ]]  &&  mkdir -p ${analysisout}
+            [[ ! -d ${DATA_DIR} ]]     &&  mkdir -p ${DATA_DIR}
+            [[ ! -d ${BUMP_DIR} ]]     &&  mkdir -p ${BUMP_DIR}
+
+            # ensemble members and initial restart are symbolic link
+            [[ -L ${DATA_DIR}/ens_c384 ]]     &&  rm -rf ${DATA_DIR}/ens_c384
+            ln -sf /work/noaa/da/fvandenb/data_from_hera/enkfgdas ${DATA_DIR}/ens_c384
+
+            # link the observation data
+            ln -sf /work/noaa/da/hailingz/work/c2nwp/Data/ioda2 ${DATA_DIR}/.
+
+            # link the static background error
+            ln -sf /work/noaa/da/hailingz/work/c2nwp/Data/bump/${BUMP_name} ${BUMP_DIR}/.
 
             # call templating script
             sh ${TEMPLATE_DIR}/template_${DAmethod}_yaml.sh "${OPTS[@]}"
-            ln -sf ${BUMP_DIR}/${BUMP_name} .
-            sh ${TEMPLATE_DIR}/template_${DAmethod}_job.sh job_${CDATE}.sh  ${DAmethod}  fv3jedi_var.x
+            cp 3dhyb.yaml ${TOP_DIR}/${CDATE}/.
             cp job_${CDATE}.sh ${TOP_DIR}/${CDATE}/.
         """ 
 
@@ -66,7 +77,8 @@
                 Run the JEDI solver
         """
         script = """
-            bash ${TOP_DIR}/${CDATE}/job_${CDATE}.sh
+            cd ${BUMP_DIR}
+            {{MPI_RUN}} {{MPI_ARGS}} ${JEDIbin}/fv3jedi_var.x ${TOP_DIR}/${CDATE}/${DAmethod}.yaml
         """
 
         [[[environment]]]

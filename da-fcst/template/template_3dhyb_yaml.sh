@@ -1,13 +1,19 @@
 echo "generating 3denvar yaml file"
 
 yaml=${DAmethod}.yaml
-if [ -e $yaml ]; then rm -f $yaml; fi
+[[ -e $yaml ]] && rm -f $yaml
 
-BGNDATE=$($NDATE -3 $CDATE)
-yyyy_b=`echo $BGNDATE | cut -c 1-4`
-mm_b=`echo $BGNDATE | cut -c 5-6`
-dd_b=`echo $BGNDATE | cut -c 7-8`
-hh_b=`echo $BGNDATE | cut -c 9-10`
+# should the 3 hours come from assim win?
+BGNDATE=$( date -u --date="-3 hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
+yyyy_b=${yyyy:-${BGNDATE:0:4}}
+mm_b=${mm:-${BGNDATE:4:2}}
+dd_b=${dd:-${BGNDATE:6:2}}
+hh_b=${hh:-${BGNDATE:8:2}}
+
+yyyy=${yyyy:-${CDATE:0:4}}
+mm=${mm:-${CDATE:4:2}}
+dd=${dd:-${CDATE:6:2}}
+hh=${hh:-${CDATE:8:2}}
 
 cat > $yaml << EOF
 cost function:

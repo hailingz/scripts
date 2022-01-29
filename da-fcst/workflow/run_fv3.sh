@@ -1,13 +1,15 @@
 #!/bin/ksh
 ################################################################################
 # set -x
-source ${SCRIPT_DIR}/setupfv3.sh
-export PDY=$(echo $CDATE | cut -c1-8)
-export cyc=$(echo $CDATE | cut -c9-10)
-export PDY=$PDY
-export cyc=$cyc
-DATA=${TOP_DIR}/fv3temp
-ROTDIR=${TOP_DIR}/run/${EXPT}/  
+USE_METASCHEDULAR=${USE_METASCHEDULAR:-F}
+
+if [[ ${USE_METASCHEDULAR} == F ]]; then
+  source ${SCRIPT_DIR}/setupfv3.sh
+  export PDY=$(echo $CDATE | cut -c1-8)
+  export cyc=$(echo $CDATE | cut -c9-10)
+  DATA=${TOP_DIR}/fv3temp
+  ROTDIR=${TOP_DIR}/run/${EXPT}/
+fi
 # Model config options
 export MEMBER=${MEMBER:-"-1"}  # deterministic
 [[ "$OUTPUT_FILETYPE" = "netcdf" ]] && affix="nc"
@@ -21,25 +23,33 @@ fi
 cd $DATA || exit 8
 mkdir -p $DATA/INPUT
 if [ ! -d $DATA/RESTART ]; then
-mkdir -p $DATA/RESTART
+  mkdir -p $DATA/RESTART
 else
-rm $DATA/RESTART/*
+  rm $DATA/RESTART/*
 fi
 #-------------------------------------------------------
 savedir=${ROTDIR}/${CDATE}/atmos
 if [ ! -d $savedir ]; then mkdir -p $savedir; fi
 
-GDATE=$($NDATE -$assim_freq $CDATE)
-gPDY=$(echo $GDATE | cut -c1-8)
-gcyc=$(echo $GDATE | cut -c9-10)
+if [[ ${USE_METASCHEDULAR} == F ]]; then
+  GDATE=$( date -u --date="-${assim_freq} hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
+  gPDY=$(echo $GDATE | cut -c1-8)
+  gcyc=$(echo $GDATE | cut -c9-10)
+else
+  # these are already defined????
+  GDATE=${PREDATE}
+  gPDY=${yyyymmdd_pre}
+  gcyc=${hh_pre}
+fi
+
 if [ $cycling = .true. -a $CDATE != $INIT_DATE ]; then
   icdir=$ROTDIR/${CDATE}/${DAmethod}/output/
 else
   icdir=$ROTDIR/${GDATE}/atmos
 fi
 
-sCDATE=$($NDATE -3 $CDATE)
-sCDATE=$CDATE
+sCDATE=$( date -u --date="-3 hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
+sCDATE=$CDATE   # just over-wrote the variable?
 sPDY=$PDY
 scyc=$cyc
 export tPDY=$sPDY
@@ -250,6 +260,9 @@ fi
 
 #------------------------------------------------------------------
 sh ${TEMPLATE_DIR}/template_fv3_job.sh fcst
+if [[ ${USE_METASCHEDULAR} == T ]]; then
+  exit 0
+fi
 sbatch job.sh
 sh ${SCRIPT_DIR}/checkfile.sh $DATA/RESTART/fv_core.res.tile6.nc
 sh ${SCRIPT_DIR}/checkfile.sh $DATA/RESTART/coupler.res
