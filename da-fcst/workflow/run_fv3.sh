@@ -1,6 +1,7 @@
 #!/bin/ksh
 ################################################################################
 # set -x
+
 USE_METASCHEDULAR=${USE_METASCHEDULAR:-F}
 
 if [[ ${USE_METASCHEDULAR} == F ]]; then
@@ -10,6 +11,7 @@ if [[ ${USE_METASCHEDULAR} == F ]]; then
   DATA=${TOP_DIR}/fv3temp
   ROTDIR=${TOP_DIR}/run/${EXPT}/
 fi
+
 # Model config options
 export MEMBER=${MEMBER:-"-1"}  # deterministic
 [[ "$OUTPUT_FILETYPE" = "netcdf" ]] && affix="nc"
