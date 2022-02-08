@@ -34,8 +34,8 @@
             [[ ! -d ${BUMP_DIR} ]]     &&  mkdir -p ${BUMP_DIR}
 
             # ensemble members and initial restart are symbolic link
-            [[ -L ${DATA_DIR}/ens_c384 ]]     &&  rm -rf ${DATA_DIR}/ens_c384
-            ln -sf /work/noaa/da/fvandenb/data_from_hera/enkfgdas ${DATA_DIR}/ens_c384
+            [[ ! -d ${DATA_DIR}/ens_c384 ]]  &&  mkdir -p ${DATA_DIR}/ens_c384
+            ln -sf /work/noaa/da/bruston/jedi/fv3/ensemble/c384/enkfgdas.${PREDATE:0:8} ${DATA_DIR}/ens_c384/.
 
             # link the observation data
             ln -sf /work/noaa/da/hailingz/work/c2nwp/Data/ioda2 ${DATA_DIR}/.
@@ -46,7 +46,6 @@
             # call templating script
             sh ${TEMPLATE_DIR}/template_${DAmethod}_yaml.sh "${OPTS[@]}"
             cp 3dhyb.yaml ${TOP_DIR}/${CDATE}/.
-            cp job_${CDATE}.sh ${TOP_DIR}/${CDATE}/.
         """ 
 
         [[[environment]]]

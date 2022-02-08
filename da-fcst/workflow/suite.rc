@@ -3,7 +3,7 @@
 #===============================================================================
 # To run this suite, you *will* need to change the following variables:
 {% set email_address = "your.email@address.here" %}
-{% set jedi_code_location = "/path/to/JEDI/code" %}
+{% set jedi_code_location = "/path/to/JEDI/code" %}  # this need to point Hailing
 #===============================================================================
 
 [meta]
@@ -23,7 +23,7 @@
 [scheduling]
     initial cycle point constraints = T00,T06,T12,T18
     final cycle point constraints   = T00,T06,T12,T18
-    initial cycle point             = 20210103T18
+    initial cycle point             = 20210104T00
     final cycle point               = 20210104T12
     max active cycle points         = 5
 
@@ -44,8 +44,8 @@
             graph  = """
                 # Need to set up directories first
                 ColdPrepJEDI      => ColdRunJEDI
-#               ColdRunJEDI       => ColdPrepForecast
-#               ColdPrepForecast  => ColdRunForecast
+                ColdRunJEDI       => ColdPrepForecast
+                ColdPrepForecast  => ColdRunForecast
                 """
         # This defines normal cycling
         # components for observation processing, data assimilation, forecast
@@ -53,14 +53,14 @@
             graph  = """
                 # Do the main NWP cycle
                 ColdRunForecast[-PT6H]  => PrepJEDI
-                RunForecast[-PT6H]  => PrepJEDI
-                PrepJEDI:succeed-all      => RunJEDI
-#               RunJEDI           => PrepForecast
-#               PrepForecast      => RunForecast
+                RunForecast[-PT6H]      => PrepJEDI
+                PrepJEDI:succeed-all    => RunJEDI
+                RunJEDI:succeed-all     => PrepForecast
+                PrepForecast            => RunForecast
                 """
 
         # These are the tasks that *always* cycle every 6 hours,
-        # regardlessof whether the cycle is a cold-start cycle or not
+        # regardless of whether the cycle is a cold-start cycle or not
 #       [[[PT6H]]]
 #           graph = """
 #               RetrieveAuxData => GetAGRMET
@@ -74,6 +74,7 @@
             umask 022
             ulimit -c 0
             ulimit -s unlimited
+            ulimit -v unlimited
             set -x
             """
         pre-script = """
@@ -86,16 +87,15 @@
             batch system = slurm
             execution time limit = PT1H
         [[[directives]]]
-#           --nodes = 5  # JEDI NTASKS?
-#           --exclusive
-#           --cpus-per-task = 1
-#           #--ntasks $NTASKS_JEDI
-#           --account = {{ HPC_ACCOUNT }}
-            -q = {{ PBS_QUEUE }}
-            -p = {{ PBS_PARTITION }}
-            -l = {{ PBS_DIRECTIVE }}
-            -S = "/bin/ksh"
-            -W = "umask=022"
+            --exclusive = 
+            --cpus-per-task = 1
+            # total cores
+            --ntasks = {{ NTASKS_JEDI }}
+            # total nodes
+            --time = "00:30:00"
+            --account = {{ HPC_ACCOUNT }}
+            --partition = {{ PBS_PARTITION }}
+            --qos = {{ PBS_QUEUE }}
 
         [[[environment]]] 
 #           LOG_DIR  = $CYLC_SUITE_SHARE_DIR/$CYLC_TASK_CYCLE_POINT/logs
@@ -115,7 +115,7 @@
             SCRATCH  = ${WORKDIR}/scratch/${CYLC_SUITE_REG_PATH}
             TOP_DIR  = ${WORKDIR}/${CYLC_SUITE_REG_PATH}
             CDATE    = $(cylc cycle-point --template=%Y%m%d%H)
-            INIT_DATE= $(cylc cycle-point ${CYLC_SUITE_INITIAL_CYCLE_POINT} --template=%Y%m%d%H)
+            INIT_DATE= $(cylc cycle-point --template=%Y%m%d%H ${CYLC_SUITE_INITIAL_CYCLE_POINT})
             DATA_DIR = ${TOP_DIR}/Data
             BUMP_DIR = ${TOP_DIR}/Data/bump
 
