@@ -4,7 +4,11 @@
 # H.Zhang 202111
 # https://github.com/NOAA-EMC/global-workflow/blob/develop/parm/config/config.fv3
 
-source ./setup.sh
+USE_METASCHEDULAR=${USE_METASCHEDULAR:-F}
+
+if [[ ${USE_METASCHEDULAR} == F ]]; then
+    source ./setup.sh
+fi
 
 ###  format, output config
 ###  -------------------------------------------------------------

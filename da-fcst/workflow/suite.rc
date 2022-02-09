@@ -53,10 +53,10 @@
             graph  = """
                 # Do the main NWP cycle
                 ColdRunForecast[-PT6H]  => PrepJEDI
-                RunForecast[-PT6H]      => PrepJEDI
+                RunForecast[-PT6H]:succeed-all      => PrepJEDI
                 PrepJEDI:succeed-all    => RunJEDI
                 RunJEDI:succeed-all     => PrepForecast
-                PrepForecast            => RunForecast
+                PrepForecast:succeed-all            => RunForecast
                 """
 
         # These are the tasks that *always* cycle every 6 hours,
