@@ -15,6 +15,8 @@ mm=${mm:-${CDATE:4:2}}
 dd=${dd:-${CDATE:6:2}}
 hh=${hh:-${CDATE:8:2}}
 
+dtg_e=${dtg_e:-${yyyy}${mm}${dd}.${hh}0000}
+
 cat > $yaml << EOF
 cost function:
   cost type: 3D-Var
@@ -53,11 +55,11 @@ cost function:
     - filetype: gfs
       state variables: *3dvars
       datapath: ${ENS_path}/mem001/RESTART/
-      filename_core: ${yyyy}${mm}${dd}.${hh}0000.fv_core.res.nc
-      filename_trcr: ${yyyy}${mm}${dd}.${hh}0000.fv_tracer.res.nc
-      filename_sfcd: ${yyyy}${mm}${dd}.${hh}0000.sfc_data.nc
-      filename_sfcw: ${yyyy}${mm}${dd}.${hh}0000.fv_srf_wnd.res.nc
-      filename_cplr: ${yyyy}${mm}${dd}.${hh}0000.coupler.res
+      filename_core: ${dtg_e}.fv_core.res.nc
+      filename_trcr: ${dtg_e}.fv_tracer.res.nc
+      filename_sfcd: ${dtg_e}.sfc_data.nc
+      filename_sfcw: ${dtg_e}.fv_srf_wnd.res.nc
+      filename_cplr: ${dtg_e}.coupler.res
 EOF
 
 imem=2
@@ -67,11 +69,11 @@ cat >> $yaml << EOF
     - filetype: gfs
       state variables: *3dvars
       datapath: ${ENS_path}/mem${m3}/RESTART/
-      filename_core: ${yyyy}${mm}${dd}.${hh}0000.fv_core.res.nc
-      filename_trcr: ${yyyy}${mm}${dd}.${hh}0000.fv_tracer.res.nc
-      filename_sfcd: ${yyyy}${mm}${dd}.${hh}0000.sfc_data.nc
-      filename_sfcw: ${yyyy}${mm}${dd}.${hh}0000.fv_srf_wnd.res.nc
-      filename_cplr: ${yyyy}${mm}${dd}.${hh}0000.coupler.res
+      filename_core: ${dtg_e}.fv_core.res.nc
+      filename_trcr: ${dtg_e}.fv_tracer.res.nc
+      filename_sfcd: ${dtg_e}.sfc_data.nc
+      filename_sfcw: ${dtg_e}.fv_srf_wnd.res.nc
+      filename_cplr: ${dtg_e}.coupler.res
 EOF
    imem=$((imem+1))
 done
