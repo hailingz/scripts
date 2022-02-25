@@ -58,6 +58,8 @@
         script = """
             bash ${TOP_DIR}/${CDATE}/job_fcst_${CDATE}.sh
         """
+        [[[environment]]]
+            icdir     = ${TOP_DIR}/${CDATE}/output/RESTART
 
     [[ColdRunForecast]]
         inherit = RunForecast
