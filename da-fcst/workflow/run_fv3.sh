@@ -45,7 +45,7 @@ else
 fi
 
 if [ $cycling = .true. -a $CDATE != $INIT_DATE ]; then
-  icdir=$ROTDIR/${CDATE}/${DAmethod}/output/
+  icdir=${icdir:-$ROTDIR/${CDATE}/${DAmethod}/output/}
 else
   icdir=$ROTDIR/${GDATE}/atmos
 fi
