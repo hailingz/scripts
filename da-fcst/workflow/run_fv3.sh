@@ -278,7 +278,7 @@ if [ $SEND = "YES" ]; then
     mkdir -p $savedir/RESTART
     for rst_int in $restart_interval ; do
      if [ $rst_int -ge 0 ]; then
-       RDATE=$($NDATE +$rst_int $CDATE)
+       RDATE=$(date -u --date="${rst_int} hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
        rPDY=$(echo $RDATE | cut -c1-8)
        rcyc=$(echo $RDATE | cut -c9-10)
        for file in $(ls ${rPDY}.${rcyc}0000.*) ; do
