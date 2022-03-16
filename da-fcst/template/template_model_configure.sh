@@ -4,10 +4,10 @@ cat > model_configure <<EOF
 total_member:            1
 print_esmf:              ${print_esmf:-.false.}
 PE_MEMBER01:             $NTASKS_FV3
-start_year:              ${tPDY:0:4}
-start_month:             ${tPDY:4:2}
-start_day:               ${tPDY:6:2}
-start_hour:              ${tcyc}
+start_year:              ${PDY:0:4}
+start_month:             ${PDY:4:2}
+start_day:               ${PDY:6:2}
+start_hour:              ${cyc}
 start_minute:            0
 start_second:            0
 fhrot:                   ${IAU_FHROT:0}

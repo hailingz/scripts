@@ -1,6 +1,6 @@
 #!/bin/ksh
 ################################################################################
-# set -x
+ set -x
 
 USE_METASCHEDULAR=${USE_METASCHEDULAR:-F}
 
@@ -23,7 +23,11 @@ if [ ! -d $DATA ]; then
    mkdir -p $DATA
 fi
 cd $DATA || exit 8
-mkdir -p $DATA/INPUT
+if [ ! -d $DATA/INPUT]; then
+  mkdir -p $DATA/INPUT
+else
+  rm $DATA/INPUT/*
+fi
 if [ ! -d $DATA/RESTART ]; then
   mkdir -p $DATA/RESTART
 else
@@ -33,7 +37,7 @@ fi
 savedir=${ROTDIR}/${CDATE}/atmos
 if [ ! -d $savedir ]; then mkdir -p $savedir; fi
 
-GDATE=$PREDATE #( date -u --date="-${assim_freq} hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
+GDATE=$PREDATE
 gPDY=${yyyymmdd_pre}
 gcyc=${hh_pre}
 
@@ -43,48 +47,48 @@ else
   icdir=$ROTDIR/${GDATE}/atmos
 fi
 
-sCDATE=$( date -u --date="-3 hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
+# sfc feed from sfcanl
+#sCDATE=$( date -u --date="-3 hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
 sPDY=$PDY
 scyc=$cyc
 #-------------------------------------------------------
 
-  # Link all (except sfc_data) restart files from $icdir
-    for file in $(ls $icdir/RESTART/${PDY}.${cyc}0000.*.nc); do
-      file2=$(echo $(basename $file))
-      file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
-      fsuf=$(echo $file2 | cut -d. -f1)
-      if [ $fsuf != "sfc_data" ]; then
-         $NLN $file $DATA/INPUT/$file2
-      fi
-    done
+# Link all (except sfc_data) restart files from $icdir
+for file in $(ls $icdir/RESTART/${PDY}.${cyc}0000.*.nc); do
+  file2=$(echo $(basename $file))
+  file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
+  fsuf=$(echo $file2 | cut -d. -f1)
+  if [ $fsuf != "sfc_data" ]; then
+     $NLN $file $DATA/INPUT/$file2
+  fi
+done
 
-    if [ $CDATE -gt $INIT_DATE ]; then
-       $NLN $ROTDIR/${GDATE}/atmos/RESTART/${PDY}.${cyc}0000.fv_core.res.nc $DATA/INPUT/fv_core.res.nc
-    else
-       $NLN ${DATA_DIR}/IC_${NPZ}/${PREDATE}/RESTART/${PDY}.${cyc}0000.fv_core.res.nc $DATA/INPUT/fv_core.res.nc
-    fi
-# # Link sfcanl_data restart files from $savedir
+if [ $CDATE -gt $INIT_DATE ]; then
+  $NLN $ROTDIR/${GDATE}/atmos/RESTART/${PDY}.${cyc}0000.fv_core.res.nc $DATA/INPUT/fv_core.res.nc
+else
+  $NLN ${PREP_DATA_DIR}/IC_${NPZ}/${PREDATE}/RESTART/${PDY}.${cyc}0000.fv_core.res.nc $DATA/INPUT/fv_core.res.nc
+fi
 
-#    for file in $(ls $icdir/RESTART/${sPDY}.${scyc}0000.*.nc); do
-#      file2=$(echo $(basename $file))
-#      file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
-#      fsufanl=$(echo $file2 | cut -d. -f1)
-#      if [ $fsufanl = "sfcanl_data" ] ||  [ $fsufanl = "sfc_data" ]; then
-#        file2=$(echo $file2 | sed -e "s/sfcanl_data/sfc_data/g")
-#        $NLN $file $DATA/INPUT/$file2
-#      fi
-#    done
-
-# # Link sfc_data restart files from bkg
-    for file in $(ls ${sfcfeed}/${sPDY}.${scyc}0000.*.nc); do
-      file2=$(echo $(basename $file))
-      file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
-      fsufanl=$(echo $file2 | cut -d. -f1)
-      if [ $fsufanl = "sfcanl_data" ] ||  [ $fsufanl = "sfc_data" ]; then
-        file2=$(echo $file2 | sed -e "s/sfcanl_data/sfc_data/g")
-        $NLN $file $DATA/INPUT/$file2
-      fi
-    done
+# Link sfcanl_data restart files from source with cycling date info
+# for file in $(ls ${sfcfeed}/${sPDY}.${scyc}0000.*.nc); do
+#   file2=$(echo $(basename $file))
+#   file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
+#   fsufanl=$(echo $file2 | cut -d. -f1)
+#   if [ $fsufanl = "sfcanl_data" ] ||  [ $fsufanl = "sfc_data" ]; then
+#     file2=$(echo $file2 | sed -e "s/sfcanl_data/sfc_data/g")
+#     $NLN $file $DATA/INPUT/$file2
+#   fi
+# done
+ 
+# Link sfc_data restart files from source without date
+for file in $(ls ${sfcfeed}/sfc*nc); do
+  file2=$(echo $(basename $file))
+  fsufanl=$(echo $file2 | cut -d. -f1)
+  if [ $fsufanl = "sfcanl_data" ] ||  [ $fsufanl = "sfc_data" ]; then
+    file2=$(echo $file2 | sed -e "s/sfcanl_data/sfc_data/g")
+    $NLN $file $DATA/INPUT/$file2
+  fi
+done
 
 nfiles=$(ls -1 $DATA/INPUT/* | wc -l)
 if [ $nfiles -le 0 ]; then
