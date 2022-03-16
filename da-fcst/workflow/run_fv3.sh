@@ -8,7 +8,7 @@ if [[ ${USE_METASCHEDULAR} == F ]]; then
   source ${SCRIPT_DIR}/setupfv3.sh
   export PDY=$(echo $CDATE | cut -c1-8)
   export cyc=$(echo $CDATE | cut -c9-10)
-  DATA=${TOP_DIR}/fv3temp
+  DATA=${TOP_DIR}/fv3scratch/${EXPT}
   ROTDIR=${TOP_DIR}/run/${EXPT}/
 fi
 
@@ -33,34 +33,23 @@ fi
 savedir=${ROTDIR}/${CDATE}/atmos
 if [ ! -d $savedir ]; then mkdir -p $savedir; fi
 
-if [[ ${USE_METASCHEDULAR} == F ]]; then
-  GDATE=$( date -u --date="-${assim_freq} hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
-  gPDY=$(echo $GDATE | cut -c1-8)
-  gcyc=$(echo $GDATE | cut -c9-10)
-else
-  # these are already defined????
-  GDATE=${PREDATE}
-  gPDY=${yyyymmdd_pre}
-  gcyc=${hh_pre}
-fi
+GDATE=$PREDATE #( date -u --date="-${assim_freq} hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
+gPDY=${yyyymmdd_pre}
+gcyc=${hh_pre}
 
-if [ $cycling = .true. -a $CDATE != $INIT_DATE ]; then
-  icdir=${icdir:-$ROTDIR/${CDATE}/${DAmethod}/output/}
+if [ $cycling = .true. ]; then
+  icdir=$ROTDIR/${CDATE}/${DAmethod}/output/
 else
   icdir=$ROTDIR/${GDATE}/atmos
 fi
 
 sCDATE=$( date -u --date="-3 hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
-sCDATE=$CDATE   # just over-wrote the variable?
 sPDY=$PDY
 scyc=$cyc
-export tPDY=$sPDY
-export tcyc=$cyc
-
 #-------------------------------------------------------
 
   # Link all (except sfc_data) restart files from $icdir
-    for file in $(ls $icdir/RESTART/${sPDY}.${scyc}0000.*.nc); do
+    for file in $(ls $icdir/RESTART/${PDY}.${cyc}0000.*.nc); do
       file2=$(echo $(basename $file))
       file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
       fsuf=$(echo $file2 | cut -d. -f1)
@@ -68,7 +57,12 @@ export tcyc=$cyc
          $NLN $file $DATA/INPUT/$file2
       fi
     done
-    $NLN ${ROTDIR}/${GDATE}/atmos/RESTART/${sPDY}.${scyc}0000.fv_core.res.nc $DATA/INPUT/fv_core.res.nc
+
+    if [ $CDATE -gt $INIT_DATE ]; then
+       $NLN $ROTDIR/${GDATE}/atmos/RESTART/${PDY}.${cyc}0000.fv_core.res.nc $DATA/INPUT/fv_core.res.nc
+    else
+       $NLN ${DATA_DIR}/IC_${NPZ}/${PREDATE}/RESTART/${PDY}.${cyc}0000.fv_core.res.nc $DATA/INPUT/fv_core.res.nc
+    fi
 # # Link sfcanl_data restart files from $savedir
 
 #    for file in $(ls $icdir/RESTART/${sPDY}.${scyc}0000.*.nc); do
@@ -82,8 +76,7 @@ export tcyc=$cyc
 #    done
 
 # # Link sfc_data restart files from bkg
-
-    for file in $(ls ${ROTDIR}/${GDATE}/atmos/RESTART/${sPDY}.${scyc}0000.*.nc); do
+    for file in $(ls ${sfcfeed}/${sPDY}.${scyc}0000.*.nc); do
       file2=$(echo $(basename $file))
       file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
       fsufanl=$(echo $file2 | cut -d. -f1)
