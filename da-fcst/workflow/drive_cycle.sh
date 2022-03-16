@@ -1,8 +1,8 @@
 #!/bin/sh
 source  ./setupjedi.sh
 
-export SDATE=2021080618
-export EDATE=2021080618
+export SDATE=2021080112
+export EDATE=2021080112
 
 export CDATE=$SDATE
 while (( $CDATE <= $EDATE )); do
@@ -26,8 +26,11 @@ while (( $CDATE <= $EDATE )); do
 
 #  run the NWP model
 #  --- sfcfeed
-  export sfcfeed=${INPUT_DATA_DIR}/restart/gdas.${yyyy}${mm}${dd}/${hh}//atmos/RESTART
-  sleep 30
+#      surface files are updated from gdas restart files. note: resolution 
+#   export sfcfeed=${INPUT_DATA_DIR}/restart/gdas.${yyyy}${mm}${dd}/${hh}//atmos/RESTART
+#      surface files are updated from ensemble files 
+  export sfcfeed=${ENS_path}/mem001/COLD
+  sleep 20
   sh run_fv3.sh $CDATE
 
 # advance date
