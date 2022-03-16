@@ -3,6 +3,8 @@
 # set up fv3 forecast
 # H.Zhang 202111
 # https://github.com/NOAA-EMC/global-workflow/blob/develop/parm/config/config.fv3
+# update to 127-level version
+# H.Zhang 202202
 
 USE_METASCHEDULAR=${USE_METASCHEDULAR:-F}
 
@@ -94,8 +96,9 @@ export LONB=${LONB:-$LONB_CASE}
 export LATB=${LATB:-$LATB_CASE}
 export LONB_IMO=${LONB_IMO:-$LONB_CASE}
 export LATB_JMO=${LATB_JMO:-$LATB_CASE}
-export npz=64
-export LEVS=65
+## to remove export npz=64
+LEVS=$((NPZ+1))
+export LEVS=$LEVS
 ###  -------------------------------------------------------------
 ### CASE config
 
@@ -103,7 +106,7 @@ export LEVS=65
 export HOMEgfs=/work/noaa/da/cmartin/noscrub/UFO_eval/global-workflow
 export FCSTEXECDIR=$HOMEgfs/sorc/fv3gfs.fd/NEMS/exe
 export FCSTEXEC=global_fv3gfs.x
-export FIX_DIR=/work/noaa/da/hailingz/fix/fv3/cory
+export FIX_DIR=/work2/noaa/da/hailingz/work/fv3-workflow/fix
 export FIX_AM=${FIX_DIR}/fix_am
 export FIXfv3=${FIX_DIR}/fix_fv3_gmted2010
 export PARMgfs=${HOMEgfs}/parm
