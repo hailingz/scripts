@@ -16,7 +16,7 @@ export ROPP2D=0
 export RADIO=0
 
 #--------------- ensemble and bump --------------
-export nmem=16
+export nmem=20
 export localization=2200km_0.58
 
 #---------------  edit operator options here ---------
@@ -30,27 +30,31 @@ export BackgroundCheck="Background Check RONBAM"
 export Ninter1=50 
 export Ninter2=25
 export minimizer=DRIPCG
+export weight_static=0.1
+export weight_ensemble=0.9
 
 #--------------- JEDI run time log print --------------
 export OOPS_TRACE=0
 export OOPS_DEBUG=0
 
 #---------------JEDI resources-------------------------
-export JEDIsrc=/work/noaa//da/hailingz/jedi/src/fv3-bundle_202110
-export JEDIbin=/work/noaa//da/hailingz/jedi/build/fv3-bundle_202110/bin
+export JEDIsrc=/work/noaa/da/hailingz/jedi/src/fv3-bundle_202201
+export JEDIbin=/work/noaa/da/hailingz/jedi/build/fv3-bundle_202201/bin
 export JEDIopt=/work/noaa/da/jedipara/opt/modules
 export JEDImod=/work/noaa/da/jedipara/opt/modules/modulefiles/core
 
 #---------------files-------------------------
 if [[ ${USE_METASCHEDULAR} == F ]]; then
-  export DATA_DIR=${TOP_DIR}/Data
-  export BUMP_DIR=${TOP_DIR}/Data/bump
+# please  do NOT change this DATA_DIR as it is a fixed data feed now
+  export BUMP_DIR=${PREP_DATA_DIR}/bump
 fi
 export BUMP_name=bump${layout}_c${RES}_$localization
-export FIX_path=${DATA_DIR}/files
-export radiodir=${DATA_DIR}/obs/oper/PT6H
-export rodir=${DATA_DIR}/ioda2
-
+export OBS_DIR=${PREP_DATA_DIR}/ioda
+#-------------static B files---------------------------
+export staticB_TOP=${PREP_DATA_DIR}/StaticBTraining/c${RES}/bump_1.0
+export trainperiod=2020010100-2020013100
+export fnamesample=${trainperiod:11:10}
+export sampledate="${fnamesample:0:4}-${fnamesample:4:2}-${fnamesample:6:2}T${fnamesample:8:2}:00:00Z"
 #--------------- post process ----------------------
 export CONVERT_RES=192
 export CONVERT_RESP=$((CONVERT_RES+1))
