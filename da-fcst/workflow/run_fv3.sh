@@ -38,7 +38,7 @@ gPDY=${yyyymmdd_pre}
 gcyc=${hh_pre}
 
 if [ $cycling = .true. ]; then
-  icdir=$ROTDIR/${CDATE}/${DAmethod}/output/
+  icdir=$ROTDIR/${CDATE}/da/output/
 else
   icdir=$ROTDIR/${GDATE}/atmos
 fi

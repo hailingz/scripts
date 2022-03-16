@@ -3,7 +3,7 @@ echo "generating hyb-3dvar yaml file"
 yaml=${DAmethod}.yaml
 if [ -e $yaml ]; then rm -f $yaml; fi
 
-BGNDATE=$($NDATE -3 $CDATE)
+BGNDATE=$( date -u --date="-3 hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
 yyyy_b=`echo $BGNDATE | cut -c 1-4`
 mm_b=`echo $BGNDATE | cut -c 5-6`
 dd_b=`echo $BGNDATE | cut -c 7-8`

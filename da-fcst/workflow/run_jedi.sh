@@ -1,7 +1,7 @@
 #!/bin/sh -f
 source  ./setupjedi.sh
 
-export  rundir=${TOP_DIR}/run/${EXPT}/${CDATE}/${DAmethod}
+export  rundir=${TOP_DIR}/run/${EXPT}/${CDATE}/da
 
 if [ ! -d $rundir ]; then mkdir -p $rundir; fi
 cd $rundir 

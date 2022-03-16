@@ -19,7 +19,7 @@ if [[ ${USE_METASCHEDULAR} == F ]]; then
   export RES=384                  
   export CASE=C${RES}
   export NPZ=127                    # model vertical layer
-  export DAmethod=3denvar
+  export DAmethod=hyb3dvar_ens-gaussian2restart
 fi
 
 export cycling=.true.
