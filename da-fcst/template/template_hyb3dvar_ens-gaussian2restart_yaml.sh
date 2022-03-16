@@ -1,42 +1,34 @@
-echo "generating 3denvar yaml file"
+echo "generating hyb-3dvar yaml file"
 
 yaml=${DAmethod}.yaml
-[[ -e $yaml ]] && rm -f $yaml
+if [ -e $yaml ]; then rm -f $yaml; fi
 
-# should the 3 hours come from assim win?
-BGNDATE=$( date -u --date="-3 hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
-yyyy_b=${yyyy:-${BGNDATE:0:4}}
-mm_b=${mm:-${BGNDATE:4:2}}
-dd_b=${dd:-${BGNDATE:6:2}}
-hh_b=${hh:-${BGNDATE:8:2}}
-
-yyyy=${yyyy:-${CDATE:0:4}}
-mm=${mm:-${CDATE:4:2}}
-dd=${dd:-${CDATE:6:2}}
-hh=${hh:-${CDATE:8:2}}
-
-dtg_e=${dtg_e:-${yyyy}${mm}${dd}.${hh}0000}
+BGNDATE=$($NDATE -3 $CDATE)
+yyyy_b=`echo $BGNDATE | cut -c 1-4`
+mm_b=`echo $BGNDATE | cut -c 5-6`
+dd_b=`echo $BGNDATE | cut -c 7-8`
+hh_b=`echo $BGNDATE | cut -c 9-10`
 
 cat > $yaml << EOF
 cost function:
   cost type: 3D-Var
   window begin: '${yyyy_b}-${mm_b}-${dd_b}T${hh_b}:00:00Z'
   window length: PT6H
-  analysis variables: &3dvars [ua,va,t,delp,ps,sphum,ice_wat,liq_wat,o3mr,rainwat,snowwat,graupel,cld_amt]
+  analysis variables: &3dvars  [ua,va,t,ps,sphum,liq_wat,o3mr]
   geometry:
     fms initialization:
-       namelist filename: ${JEDIsrc}/fv3-jedi//test/Data/fv3files/fmsmpp.nml
-       field table filename: ${JEDIsrc}/fv3-jedi//test/Data/fv3files/field_table_gfdl
-    akbk: ${JEDIsrc}/fv3-jedi//test/Data/fv3files/akbk64.nc4
+       namelist filename: ${JEDIsrc}/fv3-jedi/test/Data/fv3files/fmsmpp.nml
+       field table filename: ${JEDIsrc}/fv3-jedi/test/Data/fv3files/field_table_gfdl
+    akbk: ${JEDIsrc}/fv3-jedi/test/Data/fv3files/akbk${NPZ}.nc4
     layout: [$layout,$layout]
     io_layout: [1,1]
     npx: $RESP
     npy: $RESP
-    npz: 64
+    npz: $NPZ
     ntiles: 6
     fieldsets:
-    - fieldset: ${JEDIsrc}/fv3-jedi//test/Data/fieldsets/dynamics.yaml
-    - fieldset: ${JEDIsrc}/fv3-jedi//test/Data/fieldsets/ufo.yaml
+    - fieldset: ${JEDIsrc}/fv3-jedi/test/Data/fieldsets/dynamics.yaml
+    - fieldset: ${JEDIsrc}/fv3-jedi/test/Data/fieldsets/ufo.yaml
   background:
     filetype: gfs
     datapath: ${BKG_path}
@@ -45,56 +37,114 @@ cost function:
     filename_sfcd: ${yyyy}${mm}${dd}.${hh}0000.sfc_data.nc
     filename_sfcw: ${yyyy}${mm}${dd}.${hh}0000.fv_srf_wnd.res.nc
     filename_cplr: ${yyyy}${mm}${dd}.${hh}0000.coupler.res
-    state variables: [u,v,ua,va,t,delp,sphum,ice_wat,liq_wat,o3mr,phis,
+    state variables: [u,v,t,delp,sphum,ice_wat,liq_wat,o3mr,phis,
                       slmsk,sheleg,tsea,vtype,stype,vfrac,stc,smc,snwdph,
-                      rainwat,snowwat,graupel,cld_amt,DZ,W,
+                      rainwat,snowwat,graupel,cld_amt,w,DZ,
                       u_srf,v_srf,f10m]
   background error:
-    covariance model: ensemble
-    members:
-    - filetype: gfs
-      state variables: *3dvars
-      datapath: ${ENS_path}/mem001/RESTART/
-      filename_core: ${dtg_e}.fv_core.res.nc
-      filename_trcr: ${dtg_e}.fv_tracer.res.nc
-      filename_sfcd: ${dtg_e}.sfc_data.nc
-      filename_sfcw: ${dtg_e}.fv_srf_wnd.res.nc
-      filename_cplr: ${dtg_e}.coupler.res
-EOF
-
-imem=2
-while [ $imem -le $nmem ]; do
-m3=`printf "%03i" ${imem}`
-cat >> $yaml << EOF
-    - filetype: gfs
-      state variables: *3dvars
-      datapath: ${ENS_path}/mem${m3}/RESTART/
-      filename_core: ${dtg_e}.fv_core.res.nc
-      filename_trcr: ${dtg_e}.fv_tracer.res.nc
-      filename_sfcd: ${dtg_e}.sfc_data.nc
-      filename_sfcw: ${dtg_e}.fv_srf_wnd.res.nc
-      filename_cplr: ${dtg_e}.coupler.res
-EOF
-   imem=$((imem+1))
-done
-
-cat >> $yaml << EOF
-    localization:
-      localization variables: *3dvars
-      localization method: BUMP
-      bump:
-        prefix: ${BUMP_name}/fv3jedi_bumpparameters_nicas_3D_gfs
-        method: loc 
-        strategy: common
-        load_nicas_local: 1
-        verbosity: main
-        io_keys: [common]
-        io_values: [fixed_${localization}]
+    covariance model: hybrid
+    components:
+    - covariance:
+        covariance model: SABER
+        saber blocks:
+        - saber block name: BUMP_NICAS
+          saber central block: true
+          input variables: &control_vars [psi,chi,t,ps,sphum,liq_wat,o3mr]
+          output variables: *control_vars
+          active variables: &active_vars [psi,chi,t,ps,sphum,liq_wat,o3mr]
+          bump:
+            datadir: $staticB_TOP
+            verbosity: main
+            strategy: specific_univariate
+            load_nicas_local: true
+            grids:
+            - prefix: nicas_${trainperiod}/nicas_${trainperiod}_3D
+              variables: [stream_function,velocity_potential,air_temperature,specific_humidity,cloud_liquid_water,ozone_mass_mixing_ratio]
+            - prefix: nicas_${trainperiod}/nicas_${trainperiod}_2D
+              variables: [surface_pressure]
+            universe radius:
+              filetype: gfs
+              psinfile: true
+              datapath: ${staticB_TOP}/cor_${trainperiod}
+              filename_core: cor_rh.fv_core.res.nc
+              filename_trcr: cor_rh.fv_tracer.res.nc
+              filename_cplr: cor_rh.coupler.res
+              date: $sampledate
+        - saber block name: StdDev
+          input variables: *control_vars
+          output variables: *control_vars
+          active variables: *active_vars
+          file:
+            filetype: gfs
+            psinfile: true
+            datapath: ${staticB_TOP}/var_${trainperiod}
+            filename_core: stddev.fv_core.res.nc
+            filename_trcr: stddev.fv_tracer.res.nc
+            filename_cplr: stddev.coupler.res
+            date: $sampledate
+        - saber block name: BUMP_VerticalBalance
+          input variables: *control_vars
+          output variables: *control_vars
+          active variables: *active_vars
+          bump:
+            datadir: ${staticB_TOP}
+            prefix: vbal_${trainperiod}/vbal_${trainperiod}
+            verbosity: main
+            universe_rad: 2000.0e3
+            load_vbal: true
+            load_samp_local: true
+            fname_samp: vbal_${fnamesample}/vbal_${fnamesample}_sampling
+            vbal_block: [true, true,false, true,false,false]
+        - saber block name: BUMP_PsiChiToUV
+          input variables: *control_vars
+          output variables: *3dvars
+          active variables: [psi,chi,ua,va]
+          bump:
+            datadir: ${staticB_TOP}
+            prefix: psichitouv_${trainperiod}/psichitouv_${trainperiod}
+            verbosity: main
+            universe_rad: 2000.0e3
+            load_wind_local: true
+      weight:
+        value: $weight_static
+    - covariance:
+        covariance model: ensemble
+        members from template:
+          template:
+            filetype: gfs
+            state variables:  &ensvars [ud,vd,t,ps,sphum,liq_wat,o3mr]
+            datapath: ${ENS_path}/mem%mem%/RESTART/
+            filename_core: ${yyyy}${mm}${dd}.${hh}0000.cold2fv3.fv_core.res.nc
+            filename_trcr: ${yyyy}${mm}${dd}.${hh}0000.cold2fv3.fv_tracer.res.nc
+            filename_cplr: ${yyyy}${mm}${dd}.${hh}0000.cold2fv3.coupler.res
+          pattern: %mem%
+          nmembers: $nmem
+          zero padding: 3
+        localization:
+          localization method: SABER
+          saber block:
+            saber block name: BUMP_NICAS
+            input variables: *3dvars
+            output variables: *3dvars
+            linear variable change:
+              linear variable change name: Control2Analysis
+              input variables: *ensvars
+              output variables: *3dvars
+            bump:
+              prefix: ${BUMP_name}/fv3jedi_bumpparameters_nicas_3D_gfs
+              method: loc
+              strategy: common
+              load_nicas_local: true
+              verbosity: main
+              io_keys: [common]
+              io_values: [fixed_${localization}]
+      weight:
+        value: $weight_ensemble
   observations:
   - obs space:
       name: $ROOPR
       obsdatain:
-        obsfile: ${rodir}/gnssro_obs_${CDATE}.nc4
+        obsfile: ${OBS_DIR}/gnssro_obs_${CDATE}.nc4
         obsgrouping:
           group variables: [ "record_number" ]
           sort variable: "impact_height"
@@ -148,32 +198,32 @@ variational:
     gradient norm reduction: 1e-10
     test: on
     geometry:
-      akbk: ${JEDIsrc}/fv3-jedi/test/Data/fv3files/akbk64.nc4
+      akbk: ${JEDIsrc}/fv3-jedi/test/Data/fv3files/akbk${NPZ}.nc4
       layout: [$layout,$layout]
       io_layout: [1,1]
       npx: $RESP
       npy: $RESP
-      npz: 64
+      npz: $NPZ
       ntiles: 6
       fieldsets:
-      - fieldset: ${JEDIsrc}/fv3-jedi//test/Data/fieldsets/dynamics.yaml
-      - fieldset: ${JEDIsrc}/fv3-jedi//test/Data/fieldsets/ufo.yaml
+      - fieldset: ${JEDIsrc}/fv3-jedi/test/Data/fieldsets/dynamics.yaml
+      - fieldset: ${JEDIsrc}/fv3-jedi/test/Data/fieldsets/ufo.yaml
     diagnostics:
       departures: ombg
   - ninner: $Ninter2
     gradient norm reduction: 1e-10
     test: on
     geometry:
-      akbk: ${JEDIsrc}/fv3-jedi/test/Data/fv3files/akbk64.nc4
+      akbk: ${JEDIsrc}/fv3-jedi/test/Data/fv3files/akbk${NPZ}.nc4
       layout: [$layout,$layout]
       io_layout: [1,1]
       npx: $RESP
       npy: $RESP
-      npz: 64
+      npz: $NPZ
       ntiles: 6
       fieldsets:
-      - fieldset: ${JEDIsrc}/fv3-jedi//test/Data/fieldsets/dynamics.yaml
-      - fieldset: ${JEDIsrc}/fv3-jedi//test/Data/fieldsets/ufo.yaml
+      - fieldset: ${JEDIsrc}/fv3-jedi/test/Data/fieldsets/dynamics.yaml
+      - fieldset: ${JEDIsrc}/fv3-jedi/test/Data/fieldsets/ufo.yaml
     diagnostics:
       departures: ombg
 final:
