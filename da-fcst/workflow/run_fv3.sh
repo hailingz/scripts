@@ -1,6 +1,6 @@
 #!/bin/ksh
 ################################################################################
-# set -x
+ set -x
 
 USE_METASCHEDULAR=${USE_METASCHEDULAR:-F}
 
@@ -8,7 +8,7 @@ if [[ ${USE_METASCHEDULAR} == F ]]; then
   source ${SCRIPT_DIR}/setupfv3.sh
   export PDY=$(echo $CDATE | cut -c1-8)
   export cyc=$(echo $CDATE | cut -c9-10)
-  DATA=${TOP_DIR}/fv3temp
+  DATA=${TOP_DIR}/fv3scratch/${EXPT}
   ROTDIR=${TOP_DIR}/run/${EXPT}/
 fi
 
@@ -23,7 +23,11 @@ if [ ! -d $DATA ]; then
    mkdir -p $DATA
 fi
 cd $DATA || exit 8
-mkdir -p $DATA/INPUT
+if [ ! -d $DATA/INPUT]; then
+  mkdir -p $DATA/INPUT
+else
+  rm $DATA/INPUT/*
+fi
 if [ ! -d $DATA/RESTART ]; then
   mkdir -p $DATA/RESTART
 else
@@ -33,65 +37,58 @@ fi
 savedir=${ROTDIR}/${CDATE}/atmos
 if [ ! -d $savedir ]; then mkdir -p $savedir; fi
 
-if [[ ${USE_METASCHEDULAR} == F ]]; then
-  GDATE=$( date -u --date="-${assim_freq} hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
-  gPDY=$(echo $GDATE | cut -c1-8)
-  gcyc=$(echo $GDATE | cut -c9-10)
-else
-  # these are already defined????
-  GDATE=${PREDATE}
-  gPDY=${yyyymmdd_pre}
-  gcyc=${hh_pre}
-fi
+GDATE=$PREDATE
+gPDY=${yyyymmdd_pre}
+gcyc=${hh_pre}
 
-if [ $cycling = .true. -a $CDATE != $INIT_DATE ]; then
-  icdir=${icdir:-$ROTDIR/${CDATE}/${DAmethod}/output/}
+if [ $cycling = .true. ]; then
+  icdir=$ROTDIR/${CDATE}/da/output/
 else
   icdir=$ROTDIR/${GDATE}/atmos
 fi
 
-sCDATE=$( date -u --date="-3 hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
-sCDATE=$CDATE   # just over-wrote the variable?
+# sfc feed from sfcanl
+#sCDATE=$( date -u --date="-3 hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
 sPDY=$PDY
 scyc=$cyc
-export tPDY=$sPDY
-export tcyc=$cyc
-
 #-------------------------------------------------------
 
-  # Link all (except sfc_data) restart files from $icdir
-    for file in $(ls $icdir/RESTART/${sPDY}.${scyc}0000.*.nc); do
-      file2=$(echo $(basename $file))
-      file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
-      fsuf=$(echo $file2 | cut -d. -f1)
-      if [ $fsuf != "sfc_data" ]; then
-         $NLN $file $DATA/INPUT/$file2
-      fi
-    done
-    $NLN ${ROTDIR}/${GDATE}/atmos/RESTART/${sPDY}.${scyc}0000.fv_core.res.nc $DATA/INPUT/fv_core.res.nc
-# # Link sfcanl_data restart files from $savedir
+# Link all (except sfc_data) restart files from $icdir
+for file in $(ls $icdir/RESTART/${PDY}.${cyc}0000.*.nc); do
+  file2=$(echo $(basename $file))
+  file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
+  fsuf=$(echo $file2 | cut -d. -f1)
+  if [ $fsuf != "sfc_data" ]; then
+     $NLN $file $DATA/INPUT/$file2
+  fi
+done
 
-#    for file in $(ls $icdir/RESTART/${sPDY}.${scyc}0000.*.nc); do
-#      file2=$(echo $(basename $file))
-#      file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
-#      fsufanl=$(echo $file2 | cut -d. -f1)
-#      if [ $fsufanl = "sfcanl_data" ] ||  [ $fsufanl = "sfc_data" ]; then
-#        file2=$(echo $file2 | sed -e "s/sfcanl_data/sfc_data/g")
-#        $NLN $file $DATA/INPUT/$file2
-#      fi
-#    done
+if [ $CDATE -gt $INIT_DATE ]; then
+  $NLN $ROTDIR/${GDATE}/atmos/RESTART/${PDY}.${cyc}0000.fv_core.res.nc $DATA/INPUT/fv_core.res.nc
+else
+  $NLN ${PREP_DATA_DIR}/IC_${NPZ}/${PREDATE}/RESTART/${PDY}.${cyc}0000.fv_core.res.nc $DATA/INPUT/fv_core.res.nc
+fi
 
-# # Link sfc_data restart files from bkg
-
-    for file in $(ls ${ROTDIR}/${GDATE}/atmos/RESTART/${sPDY}.${scyc}0000.*.nc); do
-      file2=$(echo $(basename $file))
-      file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
-      fsufanl=$(echo $file2 | cut -d. -f1)
-      if [ $fsufanl = "sfcanl_data" ] ||  [ $fsufanl = "sfc_data" ]; then
-        file2=$(echo $file2 | sed -e "s/sfcanl_data/sfc_data/g")
-        $NLN $file $DATA/INPUT/$file2
-      fi
-    done
+# Link sfcanl_data restart files from source with cycling date info
+# for file in $(ls ${sfcfeed}/${sPDY}.${scyc}0000.*.nc); do
+#   file2=$(echo $(basename $file))
+#   file2=$(echo $file2 | cut -d. -f3-) # remove the date from file
+#   fsufanl=$(echo $file2 | cut -d. -f1)
+#   if [ $fsufanl = "sfcanl_data" ] ||  [ $fsufanl = "sfc_data" ]; then
+#     file2=$(echo $file2 | sed -e "s/sfcanl_data/sfc_data/g")
+#     $NLN $file $DATA/INPUT/$file2
+#   fi
+# done
+ 
+# Link sfc_data restart files from source without date
+for file in $(ls ${sfcfeed}/sfc*nc); do
+  file2=$(echo $(basename $file))
+  fsufanl=$(echo $file2 | cut -d. -f1)
+  if [ $fsufanl = "sfcanl_data" ] ||  [ $fsufanl = "sfc_data" ]; then
+    file2=$(echo $file2 | sed -e "s/sfcanl_data/sfc_data/g")
+    $NLN $file $DATA/INPUT/$file2
+  fi
+done
 
 nfiles=$(ls -1 $DATA/INPUT/* | wc -l)
 if [ $nfiles -le 0 ]; then
@@ -278,7 +275,7 @@ if [ $SEND = "YES" ]; then
     mkdir -p $savedir/RESTART
     for rst_int in $restart_interval ; do
      if [ $rst_int -ge 0 ]; then
-       RDATE=$($NDATE +$rst_int $CDATE)
+       RDATE=$(date -u --date="${rst_int} hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
        rPDY=$(echo $RDATE | cut -c1-8)
        rcyc=$(echo $RDATE | cut -c9-10)
        for file in $(ls ${rPDY}.${rcyc}0000.*) ; do
