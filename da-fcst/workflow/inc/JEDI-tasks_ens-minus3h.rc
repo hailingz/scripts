@@ -1,0 +1,128 @@
+#!jinja2    
+
+    # ------------------------------------------------------------
+    # Task definitions for the JEDI cycle
+    # ------------------------------------------------------------
+
+
+    [[SetupJEDI]]
+        title = "Create the JEDI script to be run"
+        description = """
+                Call a templating routine to setup JEDI
+                for particular cycle and configuration
+        """
+        pre-script = """
+            . $HOME/.bashrc
+            . ${SCRIPT_DIR}/setup.sh
+            . ${SCRIPT_DIR}/setupjedi.sh
+            """
+        [[[environment]]]
+            OPTS = ("vertlayer:full"  "use_compress:1"  "super_ref_qc:NBAM"  "sr_steps:2")
+
+    [[PrepJEDI]]
+        inherit = SetupJEDI
+        title = "Create the JEDI script to be run"
+        description = """
+                Call a templating routine to setup JEDI
+                for particular cycle and configuration
+        """
+        script = """
+            [[ ! -d ${rundir} ]]       &&  mkdir -p ${rundir}
+            [[ ! -d ${rundir}/log ]]   &&  mkdir -p ${rundir}/log
+            [[ ! -d ${hofxout} ]]      &&  mkdir -p ${hofxout}
+            [[ ! -d ${analysisout} ]]  &&  mkdir -p ${analysisout}
+            [[ ! -d ${DATA_DIR} ]]     &&  mkdir -p ${DATA_DIR}
+            [[ ! -d ${BUMP_DIR} ]]     &&  mkdir -p ${BUMP_DIR}
+
+            # ensemble members and initial restart are symbolic link
+            [[ ! -d ${DATA_DIR}/ens_c384 ]]  &&  mkdir -p ${DATA_DIR}/ens_c384
+            ln -sf /work/noaa/da/bruston/jedi/fv3/ensemble/c384/enkfgdas.${PREDATE:0:8} ${DATA_DIR}/ens_c384
+
+            # link the observation data
+            ln -sf /work/noaa/da/hailingz/work/c2nwp/Data/ioda2 ${DATA_DIR}/.
+
+            # link the static background error
+            #HS ln -sf /work/noaa/da/hailingz/work/c2nwp/Data/bump/${BUMP_name} ${BUMP_DIR}/.
+            ln -sf /work2/noaa/da/hailingz/work/Data/bump/${BUMP_name} ${BUMP_DIR}/.
+
+            #HS static BE
+            ln -sf /work2/noaa/da/hailingz/work/Data/StaticBTraining ${BUMP_DIR}/.
+
+            # call templating script
+            #HS sh ${TEMPLATE_DIR}/template_${DAmethod}_yaml.sh "${OPTS[@]}"
+            sh ${TEMPLATE_DIR}/template_${DAmethod}_ens-minus3h_yaml.sh "${OPTS[@]}"
+            cp ${DAmethod}.yaml ${TOP_DIR}/${CDATE}/.
+        """ 
+
+        [[[environment]]]
+            rundir = ${TOP_DIR}/${CDATE}/run    # can use cylc workdir?
+            #HS hofxout = ${rundir}/output/hofx
+            hofxout = ${TOP_DIR}/${CDATE}/hofx
+            #HS analysisout = ${rundir}/output/analysis/RESTART
+            analysisout = $${TOP_DIR}/${CDATE}/analysis/RESTART
+            #HSTODO: BKG path should be defined to accomodate both cold start and cycling 
+            BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
+            #HS test BKG_path = ${DATA_DIR}/restart/${PREDATE}/atmos/RESTART
+            #HS ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}
+            ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${PREDATE:0:8}/${PREDATE:8:2}/atmos
+            #ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${CDATE:0:8}/${CDATE:8:2}/atmos
+            dtg_e    = $(cylc cycle-point --offset-hours=-3 --template=%Y%m%d.%H0000)
+
+        [[[job]]]
+            batch system = background
+
+    [[ColdPrepJEDI]]
+        inherit = PrepJEDI
+        title = "Create the Initial time JEDI script to be run"
+        description = """
+                Call a templating routine to setup JEDI
+                for particular cycle and configuration
+        """
+       # HS link the background restart files
+        post-script = """
+            [[ ! -d ${TOP_DIR}/${PREDATE}/atmos ]]  &&  mkdir -p ${TOP_DIR}/${PREDATE}/atmos
+            ln -sf /work/noaa/da/bruston/jedi/fv3/restart/gdas.${PREDATE:0:8}/${hh_pre}/atmos/RESTART ${TOP_DIR}/${PREDATE}/atmos
+        """
+        [[[environment]]]
+            #HS BKG_path  =  ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}/atmos/mem001/RESTART
+            BKG_path  =  ${TOP_DIR}/${PREDATE}/atmos/RESTART
+
+
+    [[RunJEDI]]
+        inherit = SetupJEDI
+        title = "Run the JEDI observation processing and solver"
+        description = """
+                Run the JEDI solver
+        """
+        script = """
+            #HS for using directives cd ${BUMP_DIR}
+            #HS for using directives {{MPI_RUN}} {{MPI_ARGS}} ${JEDIbin}/fv3jedi_var.x ${TOP_DIR}/${CDATE}/${DAmethod}.yaml
+            #HS for not using directives
+            cd $rundir
+            ln -sf ${BUMP_DIR}/${BUMP_name} .
+            sh ${TEMPLATE_DIR}/template_${DAmethod}_job.sh job_${CDATE}.sh  ${DAmethod}  ${JEDIbin}/fv3jedi_var.x
+            sbatch job_${CDATE}.sh
+        """
+
+        [[[environment]]]
+            rundir = ${TOP_DIR}/${CDATE}/run/analysis    # can use cylc workdir?
+            #HS hofxout = ${rundir}/output/hofx
+            hofxout = ${TOP_DIR}/${CDATE}/hofx
+            #HS
+            analysisout = ${TOP_DIR}/${CDATE}/analysis/RESTART
+            BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
+            #HS ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}
+            #ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}/atmos
+            ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${PREDATE:0:8}/${PREDATE:8:2}/atmos
+            #ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${CDATE:0:8}/${CDATE:8:2}/atmos
+
+    [[ColdRunJEDI]]
+        inherit = RunJEDI
+        title = "Run the Cold start of JEDI observation processing and solver"
+        description = """
+                Run the JEDI solver
+        """
+        [[[environment]]]
+            #HS BKG_path  =  ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}/atmos/mem001/RESTART
+            BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
+            #BKG_path = /work/noaa/da/bruston/jedi/fv3/restart/gdas.${PREDATE:0:8}/${hh_pre}/atmos/RESTART 

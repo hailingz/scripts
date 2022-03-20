@@ -1,0 +1,114 @@
+#!jinja2    
+
+    # ------------------------------------------------------------
+    # Task definitions for executing a Environmental Forecast
+    # ------------------------------------------------------------
+
+    [[SetupForecast]]
+        title = "Call the templates to set up environment and create job script"
+        description = """
+                Do various setup tasks for the forecast model
+        """
+        pre-script = """
+            . ${SCRIPT_DIR}/setup.sh
+            . ${SCRIPT_DIR}/setupfv3.sh
+            """
+        [[[environment]]]
+            PDY       = $(cylc cycle-point --template=%Y%m%d)
+            cyc       = $(cylc cycle-point --template=%H)
+            DATA      = ${TOP_DIR}/fv3temp   #DATA here is the rundir for FV3 runs
+            #HS ROTDIR    = ${TOP_DIR}/run/${EXPT}/
+            ROTDIR    = ${TOP_DIR}
+            #HS icdir     = ${TOP_DIR}/${CDATE}/output/analysis
+            icdir     = ${TOP_DIR}/${CDATE}/analysis
+
+    [[PrepForecast]]
+        inherit = SetupForecast
+        title = "Create the Forecast script to be run"
+        description = """
+                Call a templating routine to setup Forecast
+                for particular cycle and configuration
+        """
+        script = """
+            bash ${SCRIPT_DIR}/run_fv3.sh
+            [[ ! -d ${TOP_DIR}/${CDATE} ]] && mkdir -p ${TOP_DIR}/${CDATE}
+            cp ${DATA}/diag_table      ${TOP_DIR}/${CDATE}/.
+            cp ${DATA}/data_table      ${TOP_DIR}/${CDATE}/.
+            cp ${DATA}/field_table     ${TOP_DIR}/${CDATE}/.
+            cp ${DATA}/nems.configure  ${TOP_DIR}/${CDATE}/.
+            cp ${DATA}/model_configure ${TOP_DIR}/${CDATE}/.
+            cp ${DATA}/input.nml       ${TOP_DIR}/${CDATE}/.
+            cp ${DATA}/job.sh          ${TOP_DIR}/${CDATE}/job_fcst_${CDATE}.sh
+        """ 
+
+        [[[job]]]
+            batch system = background
+
+    [[ColdPrepForecast]]
+        inherit = PrepForecast
+        title = "Create the Cold Forecast script to be run"
+        description = """
+                Call a templating routine to setup Forecast
+                for particular cycle and configuration
+        """
+
+    [[RunForecast]]
+        inherit = SetupForecast
+        title = "Run the Forecast"
+        description = """
+                Run the Forecast
+        """
+        script = """
+            #HS bash ${TOP_DIR}/${CDATE}/job_fcst_${CDATE}.sh
+            cd $DATA
+            bash job.sh
+
+            #HS Copy gdas and enkf member restart files
+            if [ $CDUMP = "gdas" -a $rst_invt1 -gt 0 ]; then
+              cd $DATA/RESTART
+              for rst_int in $restart_interval ; do
+               if [ $rst_int -ge 0 ]; then
+                 #RDATE=$($NDATE +$rst_int $CDATE)
+                 #rPDY=$(echo $RDATE | cut -c1-8)
+                 #rcyc=$(echo $RDATE | cut -c9-10)
+                 RDATE= $(cylc cycle-point --offset-hours=+${rst_int} --template=%Y%m%d%H)
+                 rPDY=${RDATE:0:8}
+                 rcyc=${RDATE:8:2}
+                 for file in $(ls ${rPDY}.${rcyc}0000.*) ; do
+                   cp $file $savedir/RESTART/$file
+                 done
+                 if [ $rst_int -eq $FHMAX ]; then
+                 # need to rename some files and then copy
+                   cp coupler.res $savedir/RESTART/${rPDY}.${rcyc}0000.coupler.res
+                   cp fv_core.res.nc $savedir/RESTART/${rPDY}.${rcyc}0000.fv_core.res.nc
+                   for file in $(ls fv_core.res.tile*) ; do
+                     cp $file $savedir/RESTART/${rPDY}.${rcyc}0000.$file
+                   done
+                   for file in $(ls fv_tracer.res.tile*) ; do
+                     cp $file $savedir/RESTART/${rPDY}.${rcyc}0000.$file
+                   done
+                   for file in $(ls phy_data.tile*) ; do
+                     cp $file $savedir/RESTART/${rPDY}.${rcyc}0000.$file
+                   done
+                   for file in $(ls sfc_data.tile*) ; do
+                     cp $file $savedir/RESTART/${rPDY}.${rcyc}0000.$file
+                   done
+                   for file in $(ls fv_srf_wnd.res.tile*) ; do
+                     cp $file $savedir/RESTART/${rPDY}.${rcyc}0000.$file
+                   done
+                 fi
+               fi
+              done
+            fi
+
+        """
+        [[[environment]]]
+            #HS icdir     = ${TOP_DIR}/${CDATE}/output/RESTART
+            icdir     = ${TOP_DIR}/${CDATE}/analysis
+
+    [[ColdRunForecast]]
+        inherit = RunForecast
+        title = "Run the Cold Forecast"
+        description = """
+                Run a Cold Forecast to initialize a DA cycle
+        """
