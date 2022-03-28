@@ -9,6 +9,14 @@ mm_b=`echo $BGNDATE | cut -c 5-6`
 dd_b=`echo $BGNDATE | cut -c 7-8`
 hh_b=`echo $BGNDATE | cut -c 9-10`
 
+yyyy=${yyyy:-${CDATE:0:4}}
+mm=${mm:-${CDATE:4:2}}
+dd=${dd:-${CDATE:6:2}}
+hh=${hh:-${CDATE:8:2}}
+
+dtg=${dtg:-${yyyy}${mm}${dd}.${hh}0000}
+dtg_e=${dtg_e:-${yyyy}${mm}${dd}.${hh}0000}
+
 cat > $yaml << EOF
 cost function:
   cost type: 3D-Var
@@ -32,11 +40,11 @@ cost function:
   background:
     filetype: gfs
     datapath: ${BKG_path}
-    filename_core: ${yyyy}${mm}${dd}.${hh}0000.fv_core.res.nc
-    filename_trcr: ${yyyy}${mm}${dd}.${hh}0000.fv_tracer.res.nc
-    filename_sfcd: ${yyyy}${mm}${dd}.${hh}0000.sfc_data.nc
-    filename_sfcw: ${yyyy}${mm}${dd}.${hh}0000.fv_srf_wnd.res.nc
-    filename_cplr: ${yyyy}${mm}${dd}.${hh}0000.coupler.res
+    filename_core: ${dtg}.fv_core.res.nc
+    filename_trcr: ${dtg}.fv_tracer.res.nc
+    filename_sfcd: ${dtg}.sfc_data.nc
+    filename_sfcw: ${dtg}.fv_srf_wnd.res.nc
+    filename_cplr: ${dtg}.coupler.res
     state variables: [u,v,t,delp,sphum,ice_wat,liq_wat,o3mr,phis,
                       slmsk,sheleg,tsea,vtype,stype,vfrac,stc,smc,snwdph,
                       rainwat,snowwat,graupel,cld_amt,w,DZ,
@@ -114,9 +122,9 @@ cost function:
             filetype: gfs
             state variables:  &ensvars [ud,vd,t,ps,sphum,liq_wat,o3mr]
             datapath: ${ENS_path}/mem%mem%/RESTART/
-            filename_core: ${yyyy}${mm}${dd}.${hh}0000.cold2fv3.fv_core.res.nc
-            filename_trcr: ${yyyy}${mm}${dd}.${hh}0000.cold2fv3.fv_tracer.res.nc
-            filename_cplr: ${yyyy}${mm}${dd}.${hh}0000.cold2fv3.coupler.res
+            filename_core: ${dtg_e}.cold2fv3.fv_core.res.nc
+            filename_trcr: ${dtg_e}.cold2fv3.fv_tracer.res.nc
+            filename_cplr: ${dtg_e}.cold2fv3.coupler.res
           pattern: %mem%
           nmembers: $nmem
           zero padding: 3

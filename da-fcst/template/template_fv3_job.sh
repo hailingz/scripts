@@ -1,16 +1,16 @@
 cat > job.sh <<EOF
 #!/usr/bin/bash
 #-------------------------------------------------------------------------------
-#SBATCH --job-name=$1
-#SBATCH -A da-cpu
-#SBATCH -p $partition
-#SBATCH -q $qos
-#SBATCH --nodes=$NNODE
-#SBATCH --tasks-per-node=$TASKS_PER_NODE
-#SBATCH --cpus-per-task=1
-#SBATCH --exclusive
-#SBATCH -t ${clocktime}:00
-#SBATCH --output fcst.%j
+##SBATCH --job-name=$1
+##SBATCH -A da-cpu
+##SBATCH -p $partition
+##SBATCH -q $qos
+##SBATCH --nodes=$NNODE
+##SBATCH --tasks-per-node=$TASKS_PER_NODE
+##SBATCH --cpus-per-task=1
+##SBATCH --exclusive
+##SBATCH -t ${clocktime}:00
+##SBATCH --output fcst.%j
 #-------------------------------------------------------------------------------
 
 ulimit -s unlimited
