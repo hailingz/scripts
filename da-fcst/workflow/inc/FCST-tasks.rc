@@ -1,4 +1,4 @@
-#!jinja2    
+#!jinja2
 
     # ------------------------------------------------------------
     # Task definitions for executing a Environmental Forecast
@@ -52,14 +52,6 @@
         [[[job]]]
             batch system = background
 
-    [[ColdPrepForecast]]
-        inherit = PrepForecast
-        title = "Create the Cold Forecast script to be run"
-        description = """
-                Call a templating routine to setup Forecast
-                for particular cycle and configuration
-        """
-
     [[RunForecast]]
         inherit = SetupForecast
         title = "Run the Forecast"
@@ -92,10 +84,3 @@
 
         [[[job]]]
             batch system = background
-
-    [[ColdRunForecast]]
-        inherit = RunForecast
-        title = "Run the Cold Forecast"
-        description = """
-                Run a Cold Forecast to initialize a DA cycle
-        """
