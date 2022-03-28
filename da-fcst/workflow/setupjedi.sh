@@ -29,6 +29,8 @@ export BackgroundCheck="Background Check RONBAM"
 #--------------- DA config  -------------------------
 export Ninter1=50 
 export Ninter2=25
+#export Ninter1=10
+#export Ninter2=10
 export minimizer=DRIPCG
 export weight_static=0.1
 export weight_ensemble=0.9
@@ -47,11 +49,11 @@ export JEDImod=/work/noaa/da/jedipara/opt/modules/modulefiles/core
 if [[ ${USE_METASCHEDULAR} == F ]]; then
 # please  do NOT change this DATA_DIR as it is a fixed data feed now
   export BUMP_DIR=${PREP_DATA_DIR}/bump
+  export staticB_TOP=${PREP_DATA_DIR}/StaticBTraining/c${RES}/bump_1.0
 fi
 export BUMP_name=bump${layout}_c${RES}_$localization
 export OBS_DIR=${PREP_DATA_DIR}/ioda
 #-------------static B files---------------------------
-export staticB_TOP=${PREP_DATA_DIR}/StaticBTraining/c${RES}/bump_1.0
 export trainperiod=2020010100-2020013100
 export fnamesample=${trainperiod:11:10}
 export sampledate="${fnamesample:0:4}-${fnamesample:4:2}-${fnamesample:6:2}T${fnamesample:8:2}:00:00Z"

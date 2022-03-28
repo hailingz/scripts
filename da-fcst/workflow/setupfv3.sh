@@ -1,4 +1,5 @@
 #!/bin/sh
+set -x
 
 # set up fv3 forecast
 # H.Zhang 202111

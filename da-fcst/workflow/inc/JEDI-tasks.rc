@@ -15,9 +15,6 @@
             . ${SCRIPT_DIR}/setup.sh
             . ${SCRIPT_DIR}/setupjedi.sh
             """
-        [[[environment]]]
-            OPTS = ("vertlayer:full"  "use_compress:1"  "super_ref_qc:NBAM"  "sr_steps:2")
-
     [[PrepJEDI]]
         inherit = SetupJEDI
         title = "Create the JEDI script to be run"
@@ -26,6 +23,7 @@
                 for particular cycle and configuration
         """
         script = """
+            . ${SCRIPT_DIR}/setupjedi.sh
             [[ ! -d ${rundir} ]]       &&  mkdir -p ${rundir}
             [[ ! -d ${rundir}/log ]]   &&  mkdir -p ${rundir}/log
             [[ ! -d ${hofxout} ]]      &&  mkdir -p ${hofxout}
@@ -35,25 +33,30 @@
 
             # ensemble members and initial restart are symbolic link
             [[ ! -d ${DATA_DIR}/ens_c384 ]]  &&  mkdir -p ${DATA_DIR}/ens_c384
-            ln -sf /work/noaa/da/bruston/jedi/fv3/ensemble/c384/enkfgdas.${PREDATE:0:8} ${DATA_DIR}/ens_c384/.
+            ln -sf ${INPUT_DATA_DIR}/ensemble/c${RES}_gaussian2restart/enkfgdas.${CDATE:0:8}/ ${DATA_DIR}/ens_c384/.
 
             # link the observation data
-            ln -sf /work/noaa/da/hailingz/work/c2nwp/Data/ioda2 ${DATA_DIR}/.
+            #ln -sf /work/noaa/da/hailingz/work/c2nwp/Data/ioda2 ${DATA_DIR}/.
+            ln -sf ${OBS_DIR} ${DATA_DIR}/.
 
             # link the static background error
-            ln -sf /work/noaa/da/hailingz/work/c2nwp/Data/bump/${BUMP_name} ${BUMP_DIR}/.
+            ln -sf ${PREP_DATA_DIR}/bump/${BUMP_name}   ${BUMP_DIR}/.
+            ln -sf /work2/noaa/da/hailingz/work/Data/StaticBTraining ${DATA_DIR}/.
 
             # call templating script
             sh ${TEMPLATE_DIR}/template_${DAmethod}_yaml.sh "${OPTS[@]}"
-            cp 3dhyb.yaml ${TOP_DIR}/${CDATE}/.
+            cp ${DAmethod}.yaml ${TOP_DIR}/${CDATE}/.
         """ 
 
         [[[environment]]]
-            rundir = ${TOP_DIR}/${CDATE}    # can use cylc workdir?
+            rundir = ${TOP_DIR}/${CDATE}/da    # can use cylc workdir?
             hofxout = ${rundir}/output/hofx
             analysisout = ${rundir}/output/RESTART
+            staticB_TOP = ${DATA_DIR}/StaticBTraining/c${RES}/bump_1.0
             BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
-            ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}
+            ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${CDATE:0:8}/${CDATE:8:2}/atmos
+            dtg    = $(cylc cycle-point --template=%Y%m%d.%H0000)
+            dtg_e    = $(cylc cycle-point --template=%Y%m%d.%H0000)
 
         [[[job]]]
             batch system = background
@@ -65,9 +68,10 @@
                 Call a templating routine to setup JEDI
                 for particular cycle and configuration
         """
-        [[[environment]]]
-            BKG_path  =  ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}/mem001/RESTART
-
+        post-script = """
+            [[ ! -d ${TOP_DIR}/${PREDATE}/atmos ]]  &&  mkdir -p ${TOP_DIR}/${PREDATE}/atmos
+            ln -sf /work/noaa/da/bruston/jedi/fv3/c${RES}_gdas/gdas.${PREDATE:0:8}/${PREDATE:8:2}/atmos/RESTART ${TOP_DIR}/${PREDATE}/atmos
+        """
 
     [[RunJEDI]]
         inherit = SetupJEDI
@@ -76,16 +80,18 @@
                 Run the JEDI solver
         """
         script = """
-            cd ${BUMP_DIR}
-            {{MPI_RUN}} {{MPI_ARGS}} ${JEDIbin}/fv3jedi_var.x ${TOP_DIR}/${CDATE}/${DAmethod}.yaml
+            cd $rundir
+            ln -sf ${BUMP_DIR}/${BUMP_name} .
+            {{MPI_RUN}} {{MPI_ARGS_JEDI}} ${JEDIbin}/fv3jedi_var.x ${TOP_DIR}/${CDATE}/${DAmethod}.yaml
         """
 
         [[[environment]]]
-            rundir = ${TOP_DIR}/${CDATE}    # can use cylc workdir?
+            rundir = ${TOP_DIR}/${CDATE}/da    # can use cylc workdir?
             hofxout = ${rundir}/output/hofx
             analysisout = ${rundir}/output/RESTART
             BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
-            ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}
+            #HS ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}
+            ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${CDATE:0:8}/${CDATE:8:2}/atmos
 
     [[ColdRunJEDI]]
         inherit = RunJEDI
@@ -94,4 +100,4 @@
                 Run the JEDI solver
         """
         [[[environment]]]
-            BKG_path  =  ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}/mem001/RESTART
+            BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART

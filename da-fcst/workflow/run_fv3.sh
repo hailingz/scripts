@@ -10,7 +10,10 @@ if [[ ${USE_METASCHEDULAR} == F ]]; then
   export cyc=$(echo $CDATE | cut -c9-10)
   DATA=${TOP_DIR}/fv3scratch/${EXPT}
   ROTDIR=${TOP_DIR}/run/${EXPT}/
+  savedir=${ROTDIR}/${CDATE}/atmos
 fi
+
+OUTPUT_FILETYPE=${OUTPUT_FILETYPE:-"netcdf"}
 
 # Model config options
 export MEMBER=${MEMBER:-"-1"}  # deterministic
@@ -23,7 +26,7 @@ if [ ! -d $DATA ]; then
    mkdir -p $DATA
 fi
 cd $DATA || exit 8
-if [ ! -d $DATA/INPUT]; then
+if [ ! -d $DATA/INPUT ]; then
   mkdir -p $DATA/INPUT
 else
   rm $DATA/INPUT/*
@@ -34,7 +37,6 @@ else
   rm $DATA/RESTART/*
 fi
 #-------------------------------------------------------
-savedir=${ROTDIR}/${CDATE}/atmos
 if [ ! -d $savedir ]; then mkdir -p $savedir; fi
 
 GDATE=$PREDATE
@@ -81,6 +83,9 @@ fi
 # done
  
 # Link sfc_data restart files from source without date
+#HS the following section only works with certain dir structure for the ensemble 
+#converted from gaussian grid files
+if [[ ${USE_METASCHEDULAR} == F ]]; then
 for file in $(ls ${sfcfeed}/sfc*nc); do
   file2=$(echo $(basename $file))
   fsufanl=$(echo $file2 | cut -d. -f1)
@@ -89,6 +94,7 @@ for file in $(ls ${sfcfeed}/sfc*nc); do
     $NLN $file $DATA/INPUT/$file2
   fi
 done
+fi
 
 nfiles=$(ls -1 $DATA/INPUT/* | wc -l)
 if [ $nfiles -le 0 ]; then
@@ -258,10 +264,11 @@ if [ $QUILTING = ".true." -a $OUTPUT_GRID = "gaussian_grid" ]; then
 fi
 
 #------------------------------------------------------------------
-sh ${TEMPLATE_DIR}/template_fv3_job.sh fcst
 if [[ ${USE_METASCHEDULAR} == T ]]; then
+  sh ${TEMPLATE_DIR}/template_fcst_job.sh fcst
   exit 0
 fi
+sh ${TEMPLATE_DIR}/template_fv3_job.sh fcst
 sbatch job.sh
 sh ${SCRIPT_DIR}/checkfile.sh $DATA/RESTART/fv_core.res.tile6.nc
 sh ${SCRIPT_DIR}/checkfile.sh $DATA/RESTART/coupler.res

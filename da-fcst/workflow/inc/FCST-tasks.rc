@@ -16,8 +16,13 @@
         [[[environment]]]
             PDY       = $(cylc cycle-point --template=%Y%m%d)
             cyc       = $(cylc cycle-point --template=%H)
-            DATA      = ${TOP_DIR}/fv3temp
-            ROTDIR    = ${TOP_DIR}/run/${EXPT}/
+            DATA      = ${TOP_DIR}/fv3temp    #fv3 run dir
+            ROTDIR    = ${TOP_DIR}
+            icdir     = ${TOP_DIR}/${CDATE}/output/
+            sfcfeed   = ${DATA_DIR}/ens_c${RES}/enkfgdas.${CDATE:0:8}/${CDATE:8:2}/atmos/mem001/COLD
+            MPI_ARGS  = {{MPI_ARGS_FCST}}
+            MPI_RUN   = {{MPI_RUN}}
+            savedir   = ${ROTDIR}/${CDATE}/atmos
 
     [[PrepForecast]]
         inherit = SetupForecast
@@ -28,14 +33,20 @@
         """
         script = """
             bash ${SCRIPT_DIR}/run_fv3.sh
+            ln -sf ${sfcfeed}/sfc_data.tile1.nc ${DATA}/INPUT/sfc_data.tile1.nc
+            ln -sf ${sfcfeed}/sfc_data.tile2.nc ${DATA}/INPUT/sfc_data.tile2.nc
+            ln -sf ${sfcfeed}/sfc_data.tile3.nc ${DATA}/INPUT/sfc_data.tile3.nc
+            ln -sf ${sfcfeed}/sfc_data.tile4.nc ${DATA}/INPUT/sfc_data.tile4.nc
+            ln -sf ${sfcfeed}/sfc_data.tile5.nc ${DATA}/INPUT/sfc_data.tile5.nc
+            ln -sf ${sfcfeed}/sfc_data.tile6.nc ${DATA}/INPUT/sfc_data.tile6.nc
             [[ ! -d ${TOP_DIR}/${CDATE} ]] && mkdir -p ${TOP_DIR}/${CDATE}
-            cp diag_table      ${TOP_DIR}/${CDATE}/.
-            cp data_table      ${TOP_DIR}/${CDATE}/.
-            cp field_table     ${TOP_DIR}/${CDATE}/.
-            cp nems.configure  ${TOP_DIR}/${CDATE}/.
-            cp model_configure ${TOP_DIR}/${CDATE}/.
-            cp input.nml       ${TOP_DIR}/${CDATE}/.
-            cp job.sh          ${TOP_DIR}/${CDATE}/job_fcst_${CDATE}.sh
+            cp ${DATA}/diag_table      ${TOP_DIR}/${CDATE}/.
+            cp ${DATA}/data_table      ${TOP_DIR}/${CDATE}/.
+            cp ${DATA}/field_table     ${TOP_DIR}/${CDATE}/.
+            cp ${DATA}/nems.configure  ${TOP_DIR}/${CDATE}/.
+            cp ${DATA}/model_configure ${TOP_DIR}/${CDATE}/.
+            cp ${DATA}/input.nml       ${TOP_DIR}/${CDATE}/.
+            cp ${DATA}/job.sh          ${TOP_DIR}/${CDATE}/job_fcst_${CDATE}.sh
         """ 
 
         [[[job]]]
@@ -56,10 +67,31 @@
                 Run the Forecast
         """
         script = """
-            bash ${TOP_DIR}/${CDATE}/job_fcst_${CDATE}.sh
+            #bash ${TOP_DIR}/${CDATE}/job_fcst_${CDATE}.sh
+            cd $DATA
+            bash job.sh
         """
+
         [[[environment]]]
-            icdir     = ${TOP_DIR}/${CDATE}/output/RESTART
+            ROTDIR    = ${TOP_DIR}
+            icdir     = ${TOP_DIR}/${CDATE}/output
+            sfcfeed   = ${DATA_DIR}/ens_c${RES}/enkfgdas.${CDATE:0:8}/${CDATE:8:2}/atmos/mem001/RESTART
+            savedir   = ${ROTDIR}/${CDATE}/atmos
+            MPI_ARGS  = {{MPI_ARGS_FCST}}
+            MPI_RUN   = {{MPI_RUN}}
+
+    [[PostForecast]]
+        inherit = SetupForecast
+        title = "Save Forecast Files"
+        description = """
+                Run a Post Forecast to archive forecast files
+        """
+        script = """
+            bash ${SCRIPT_DIR}/archive_fv3.sh
+        """
+
+        [[[job]]]
+            batch system = background
 
     [[ColdRunForecast]]
         inherit = RunForecast
