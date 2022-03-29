@@ -6,7 +6,7 @@
 #===============================================================================
 
 [meta]
-    title = " run a cycling JEDI-based DA system "
+    title = " run a cycling hybrid 3DEnVar JEDI-based DA system using ensembles converted Gaussian grid forecasts "
     description = "Forecast + Observation Ingest + H(x) + Solver"
 
 ############################
@@ -23,7 +23,7 @@
     initial cycle point constraints = T00,T06,T12,T18
     final cycle point constraints   = T00,T06,T12,T18
     initial cycle point             = 20210801T12
-    final cycle point               = 20210801T18
+    final cycle point               = 20210807T18
     max active cycle points         = 6
 
 
@@ -42,15 +42,11 @@
         [[[R1]]]
             graph  = """
                 # Need to set up directories first
-                ColdPrepJEDI:succeed-all            => RunJEDI
+                ColdPrepJEDI                        => RunJEDI
                 RunJEDI                             => PrepForecast
                 PrepForecast                        => RunForecast
                 RunForecast                         => PostForecast
                 """
-        [[[R1/^+PT6H]]]
-            graph = """
-                PostForecast[-PT6H]                 => PrepJEDI
-            """
         # This defines normal cycling
         # components for observation processing, data assimilation, forecast
         [[[^+PT6H/PT6H]]]
@@ -81,10 +77,7 @@
             ulimit -v unlimited
             set -x
             """
-        #HS: setup.sh is only needed for jedi dasks. Remove?
-        pre-script = """
-            . ${SCRIPT_DIR}/setup.sh
-            """
+
         [[[simulation mode]]]
             run time range = PT2S, PT3S # in simulation mode, 2 seconds per task
 
@@ -117,13 +110,12 @@
             CASE          =  C${RES}
             assim_freq    =  6
             NPZ           =  127   
-            #HS? init_date should be the same as initial cylc suite initial cycle point?
             INIT_DATE     = $(cylc cycle-point --template=%Y%m%d%H --offset-hours=-$assim_freq ${CYLC_SUITE_INITIAL_CYCLE_POINT})
             PREDATE       = $(cylc cycle-point --offset-hours=-$assim_freq --template=%Y%m%d%H)
             yyyymmdd_pre  = $(cylc cycle-point --offset-hours=-$assim_freq --template=%Y%m%d)
             hh_pre        = $(cylc cycle-point --offset-hours=-$assim_freq --template=%H)
 
-        [[[event hooks]]]
+        [[[events]]]
             failed handler            = cylc email-task
             submission failed handler = cylc email-task
 

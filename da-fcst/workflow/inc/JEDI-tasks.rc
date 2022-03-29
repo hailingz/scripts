@@ -15,12 +15,12 @@
             . ${SCRIPT_DIR}/setup.sh
             . ${SCRIPT_DIR}/setupjedi.sh
             """
-    [[ColdPrepJEDI]]
+    [[PrepJEDIdefault]]
         inherit = SetupJEDI
-        title = "Create the JEDI script to be run"
+        title = "Create the default JEDI script to be run"
         description = """
                 Call a templating routine to setup JEDI
-                for particular cycle and configuration
+                for default cycle and configuration
         """
         script = """
             . ${SCRIPT_DIR}/setupjedi.sh
@@ -46,13 +46,9 @@
             sh ${TEMPLATE_DIR}/template_${DAmethod}_yaml.sh "${OPTS[@]}"
             cp ${DAmethod}.yaml ${TOP_DIR}/${CDATE}/.
         """ 
-        post-script = """
-            [[ ! -d ${TOP_DIR}/${PREDATE}/atmos ]]  &&  mkdir -p ${TOP_DIR}/${PREDATE}/atmos
-            ln -sf /work/noaa/da/bruston/jedi/fv3/c${RES}_gdas/gdas.${PREDATE:0:8}/${PREDATE:8:2}/atmos/RESTART ${TOP_DIR}/${PREDATE}/atmos
-        """
 
         [[[environment]]]
-            rundir = ${TOP_DIR}/${CDATE}/da    # can use cylc workdir?
+            rundir = ${TOP_DIR}/${CDATE}/da   
             hofxout = ${rundir}/output/hofx
             analysisout = ${rundir}/output/RESTART
             staticB_TOP = ${DATA_DIR}/StaticBTraining/c${RES}/bump_1.0
@@ -64,15 +60,24 @@
         [[[job]]]
             batch system = background
 
-    [[PrepJEDI]]
-        inherit = ColdPrepJEDI
+    [[ColdPrepJEDI]]
+        inherit = PrepJEDIdefault
         title = "Create the Initial time JEDI script to be run"
         description = """
                 Call a templating routine to setup JEDI
-                for particular cycle and configuration
+                for coldstart cycle and configuration
         """
         post-script = """
-            echo " at the moment no post script for PrepJEDI "
+            [[ ! -d ${TOP_DIR}/${PREDATE}/atmos ]]  &&  mkdir -p ${TOP_DIR}/${PREDATE}/atmos
+            ln -sf /work/noaa/da/bruston/jedi/fv3/c${RES}_gdas/gdas.${PREDATE:0:8}/${PREDATE:8:2}/atmos/RESTART ${TOP_DIR}/${PREDATE}/atmos
+        """
+
+    [[PrepJEDI]]
+        inherit = PrepJEDIdefault
+        title = "Create the JEDI script to be run"
+        description = """
+                Call a templating routine to setup JEDI
+                for cycle and configuration
         """
 
     [[RunJEDI]]
