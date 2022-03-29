@@ -15,10 +15,8 @@
             . ${SCRIPT_DIR}/setup.sh
             . ${SCRIPT_DIR}/setupjedi.sh
             """
-        #HS [[[environment]]]
-            #HS caused issues OPTS = ("vertlayer:full"  "use_compress:1"  "super_ref_qc:NBAM"  "sr_steps:2")
 
-    [[PrepJEDI]]
+    [[PrepJEDIdefault]]
         inherit = SetupJEDI
         title = "Create the JEDI script to be run"
         description = """
@@ -28,7 +26,7 @@
         script = """
             . ${SCRIPT_DIR}/setupjedi.sh
             [[ ! -d ${rundir} ]]       &&  mkdir -p ${rundir}
-            [[ ! -d ${rundir}/log ]]   &&  mkdir -p ${rundir}/log  #HS no need?
+            [[ ! -d ${rundir}/log ]]   &&  mkdir -p ${rundir}/log 
             [[ ! -d ${hofxout} ]]      &&  mkdir -p ${hofxout}
             [[ ! -d ${analysisout} ]]  &&  mkdir -p ${analysisout}
             [[ ! -d ${DATA_DIR} ]]     &&  mkdir -p ${DATA_DIR}
@@ -61,23 +59,25 @@
         [[[job]]]
             batch system = background
 
-    [[ColdPrepJEDI]]
-        inherit = PrepJEDI
-        title = "Create the Initial time JEDI script to be run"
+    [[PrepJEDI]]
+        inherit = PrepJEDIdefault
+        title = "Create the JEDI script to be run"
         description = """
                 Call a templating routine to setup JEDI
-                for particular cycle and configuration
+                for cycle and configuration
         """
-       # HS link the background restart files
+
+    [[ColdPrepJEDI]]
+        inherit = PrepJEDIdefault
+        title = "Create the initla time JEDI script to be run"
+        description = """
+                Call a templating routine to setup JEDI
+                for Cold start cycle and configuration
+        """
         post-script = """
             [[ ! -d ${TOP_DIR}/${PREDATE}/atmos ]]  &&  mkdir -p ${TOP_DIR}/${PREDATE}/atmos
-
             ln -sf /work/noaa/da/bruston/jedi/fv3/c${RES}_gdas/gdas.${PREDATE:0:8}/${hh_pre}/atmos/RESTART ${TOP_DIR}/${PREDATE}/atmos
         """
-        [[[environment]]]
-            #HS BKG_path  =  ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}/atmos/mem001/RESTART
-            BKG_path  =  ${TOP_DIR}/${PREDATE}/atmos/RESTART
-
 
     [[RunJEDI]]
         inherit = SetupJEDI
@@ -86,15 +86,9 @@
                 Run the JEDI solver
         """
         script = """
-            #HS for using directives cd ${BUMP_DIR}
             cd $rundir
             ln -sf ${BUMP_DIR}/${BUMP_name} .
-            {{MPI_RUN}} {{MPI_ARGS_JEDI}} ${JEDIbin}/fv3jedi_var.x ${TOP_DIR}/${CDATE}/${DAmethod}.yaml #HS to do: use shell to remove MPI_RUN
-            #HS for not using directives
-            #cd $rundir
-            #ln -sf ${BUMP_DIR}/${BUMP_name} .
-            #sh ${TEMPLATE_DIR}/template_job.sh job_${CDATE}.sh  ${DAmethod}  fv3jedi_var.x
-            #bash job_${CDATE}.sh
+            {{MPI_RUN}} {{MPI_ARGS_JEDI}} ${JEDIbin}/fv3jedi_var.x ${TOP_DIR}/${CDATE}/${DAmethod}.yaml 
         """
 
         [[[environment]]]
@@ -102,19 +96,7 @@
             hofxout = ${rundir}/output/hofx
             analysisout = ${rundir}/output/RESTART
             BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
-            #HS ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}
-            #ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}/atmos
             ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${PREDATE:0:8}/${PREDATE:8:2}/atmos
-            #ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${CDATE:0:8}/${CDATE:8:2}/atmos
             MPI_ARGS  = {{MPI_ARGS_JEDI}}
             MPI_RUN   = {{MPI_RUN}}
 
-    [[ColdRunJEDI]]
-        inherit = RunJEDI
-        title = "Run the Cold start of JEDI observation processing and solver"
-        description = """
-                Run the JEDI solver
-        """
-        [[[environment]]]
-            #HS BKG_path  =  ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}/atmos/mem001/RESTART
-            BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART

@@ -17,7 +17,6 @@
             PDY       = $(cylc cycle-point --template=%Y%m%d)
             cyc       = $(cylc cycle-point --template=%H)
             DATA      = ${TOP_DIR}/fv3temp   #DATA here is the rundir for FV3 runs
-            #HS ROTDIR    = ${TOP_DIR}/run/${EXPT}/
             ROTDIR    = ${TOP_DIR}
             icdir     = ${TOP_DIR}/${CDATE}/output/
             sfcfeed   = ${DATA_DIR}/ens_c${RES}/enkfgdas.${PREDATE:0:8}/${PREDATE:8:2}/atmos/mem001/RESTART
@@ -54,14 +53,6 @@
         [[[job]]]
             batch system = background
 
-    [[ColdPrepForecast]]
-        inherit = PrepForecast
-        title = "Create the Cold Forecast script to be run"
-        description = """
-                Call a templating routine to setup Forecast
-                for particular cycle and configuration
-        """
-
     [[RunForecast]]
         inherit = SetupForecast
         title = "Run the Forecast"
@@ -69,10 +60,8 @@
                 Run the Forecast
         """
         script = """
-            #HS bash ${TOP_DIR}/${CDATE}/job_fcst_${CDATE}.sh
             cd $DATA
             bash job.sh  
-            #{{MPI_RUN}} {{MPI_ARGS_FCST}} /work/noaa/da/cmartin/noscrub/UFO_eval/global-workflow/sorc/fv3gfs.fd/NEMS/exe/global_fv3gfs.x 
         """
 
         [[[environment]]]
@@ -87,7 +76,7 @@
         inherit = SetupForecast
         title = "Save Forecast Files"
         description = """
-                Run a Post Forecast to archive forecast files
+                Run the Post Forecast to archive forecast files
         """
         script = """
             bash ${SCRIPT_DIR}/archive_fv3.sh
@@ -95,10 +84,3 @@
 
         [[[job]]]
             batch system = background
-
-    [[ColdRunForecast]]
-        inherit = RunForecast
-        title = "Run the Cold Forecast"
-        description = """
-                Run a Cold Forecast to initialize a DA cycle
-        """

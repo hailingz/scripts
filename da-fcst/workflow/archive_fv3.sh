@@ -1,3 +1,12 @@
+#!/bin/sh
+#set -x
+
+# cp fv3 forecast from run directory ($DATA/RESTART) to save directory ($savedir)
+# this script is intended to be used as part of cylc suite scripts and 
+# replaces a similar section inside run_fv3.sh (by H. Zhang 202111)
+# H.Shao 202203
+
+
   # Copy gdas and enkf member restart files
   if [ $CDUMP = "gdas" -a $rst_invt1 -gt 0 ]; then
     cd $DATA/RESTART

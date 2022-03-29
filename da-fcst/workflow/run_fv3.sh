@@ -83,8 +83,6 @@ fi
 # done
  
 # Link sfc_data restart files from source without date
-#HS the following section only works with certain dir structure for the ensemble 
-#converted from gaussian grid files
 if [[ ${USE_METASCHEDULAR} == F ]]; then
 for file in $(ls ${sfcfeed}/sfc*nc); do
   file2=$(echo $(basename $file))
