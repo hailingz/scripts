@@ -1,9 +1,8 @@
-echo "generating 3denvar yaml file"
+echo "generating hybrid 3dvar yaml file using ensemble from different hours (dtg_e) from analysis (dtg)"
 
 yaml=${DAmethod}.yaml
 [[ -e $yaml ]] && rm -f $yaml
 
-# should the 3 hours come from assim win?
 BGNDATE=$( date -u --date="-3 hours ${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2} ${CDATE:8:2}" +%Y%m%d%H )
 yyyy_b=${yyyy:-${BGNDATE:0:4}}
 mm_b=${mm:-${BGNDATE:4:2}}
@@ -51,35 +50,100 @@ cost function:
                       rainwat,snowwat,graupel,cld_amt,DZ,W,
                       u_srf,v_srf,f10m]
   background error:
-    covariance model: ensemble
-    members from template:
-      template:
-        filetype: gfs
-        state variables:  *3dvars
-        datapath: ${ENS_path}/mem%mem%/RESTART/
-        filename_core: ${dtg_e}.fv_core.res.nc
-        filename_trcr: ${dtg_e}.fv_tracer.res.nc
-        filename_sfcd: ${dtg_e}.sfc_data.nc
-        filename_sfcw: ${dtg_e}.fv_srf_wnd.res.nc
-        filename_cplr: ${dtg}.coupler.res
-      pattern: %mem%
-      nmembers: $nmem
-      zero padding: 3 
-    localization:
-      localization variables: *3dvars
-      localization method: SABER
-      saber block:
-        saber block name: BUMP_NICAS
-        input variables: *3dvars
-        output variables: *3dvars
-        bump:
-          prefix: ${BUMP_name}/fv3jedi_bumpparameters_nicas_3D_gfs
-          method: loc 
-          strategy: common
-          load_nicas_local: 1
-          verbosity: main
-          io_keys: [common]
-          io_values: [fixed_${localization}]
+    covariance model: hybrid
+    components:
+    - covariance:
+        covariance model: SABER
+        saber blocks:
+        - saber block name: BUMP_NICAS
+          saber central block: true
+          input variables: &control_vars [psi,chi,t,ps,sphum,liq_wat,o3mr]
+          output variables: *control_vars
+          active variables: &active_vars [psi,chi,t,ps,sphum,liq_wat,o3mr]
+          bump:
+            datadir: $staticB_TOP
+            verbosity: main
+            strategy: specific_univariate
+            load_nicas_local: true
+            grids:
+            - prefix: nicas_${trainperiod}/nicas_${trainperiod}_3D
+              variables: [stream_function,velocity_potential,air_temperature,specific_humidity,cloud_liquid_water,ozone_mass_mixing_ratio]
+            - prefix: nicas_${trainperiod}/nicas_${trainperiod}_2D
+              variables: [surface_pressure]
+            universe radius:
+              filetype: gfs
+              psinfile: true
+              datapath: ${staticB_TOP}/cor_${trainperiod}
+              filename_core: cor_rh.fv_core.res.nc
+              filename_trcr: cor_rh.fv_tracer.res.nc
+              filename_cplr: cor_rh.coupler.res
+              date: $sampledate
+        - saber block name: StdDev
+          input variables: *control_vars
+          output variables: *control_vars
+          active variables: *active_vars
+          file:
+            filetype: gfs
+            psinfile: true
+            datapath: ${staticB_TOP}/var_${trainperiod}
+            filename_core: stddev.fv_core.res.nc
+            filename_trcr: stddev.fv_tracer.res.nc
+            filename_cplr: stddev.coupler.res
+            date: $sampledate
+        - saber block name: BUMP_VerticalBalance
+          input variables: *control_vars
+          output variables: *control_vars
+          active variables: *active_vars
+          bump:
+            datadir: ${staticB_TOP}
+            prefix: vbal_${trainperiod}/vbal_${trainperiod}
+            verbosity: main
+            universe_rad: 2000.0e3
+            load_vbal: true
+            load_samp_local: true
+            fname_samp: vbal_${fnamesample}/vbal_${fnamesample}_sampling
+            vbal_block: [true, true,false, true,false,false]
+        - saber block name: BUMP_PsiChiToUV
+          input variables: *control_vars
+          output variables: *3dvars
+          active variables: [psi,chi,ua,va]
+          bump:
+            datadir: ${staticB_TOP}
+            prefix: psichitouv_${trainperiod}/psichitouv_${trainperiod}
+            verbosity: main
+            universe_rad: 2000.0e3
+            load_wind_local: true
+      weight:
+        value: $weight_static
+    - covariance:
+        covariance model: ensemble
+        members from template:
+          template:
+            filetype: gfs
+            state variables:  *3dvars
+            datapath: ${ENS_path}/mem%mem%/RESTART/
+            filename_core: ${dtg_e}.fv_core.res.nc
+            filename_trcr: ${dtg_e}.fv_tracer.res.nc
+            filename_cplr: ${dtg}.coupler.res
+          pattern: %mem%
+          nmembers: $nmem
+          zero padding: 3 
+        localization:
+          localization method: SABER
+          saber block:
+            saber block name: BUMP_NICAS
+            input variables: *3dvars
+            output variables: *3dvars
+            bump:
+              prefix: ${BUMP_name}/fv3jedi_bumpparameters_nicas_3D_gfs
+              method: loc 
+              strategy: common
+              load_nicas_local: true
+              verbosity: main
+              io_keys: [common]
+              io_values: [fixed_${localization}]
+      weight:
+        value: $weight_ensemble
   observations:
   - obs space:
       name: $ROOPR
