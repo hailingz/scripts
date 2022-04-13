@@ -51,6 +51,7 @@
             rundir = ${TOP_DIR}/${CDATE}/da    # can use cylc workdir?
             hofxout = ${rundir}/output/hofx
             analysisout = ${rundir}/output/RESTART
+            staticB_TOP = ${DATA_DIR}/StaticBTraining/c${RES}/bump_1.0
             BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
             ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${PREDATE:0:8}/${PREDATE:8:2}/atmos
             dtg    = $(cylc cycle-point --template=%Y%m%d.%H0000)
