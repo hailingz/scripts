@@ -1,8 +1,11 @@
 #!/bin/sh
+set -x
 
 # set up fv3 forecast
 # H.Zhang 202111
 # https://github.com/NOAA-EMC/global-workflow/blob/develop/parm/config/config.fv3
+# update to 127-level version
+# H.Zhang 202202
 
 USE_METASCHEDULAR=${USE_METASCHEDULAR:-F}
 
@@ -66,11 +69,11 @@ fi
 ###  -------------------------------------------------------------
 #- fv3 layout and computing resource 
 export ntiles=6
-export layout_x=6
-export layout_y=6
+export layout_x=6   #layout number of FV3. set up based on NOAA/GFSs workflow
+export layout_y=6   #layout number of FV3. set up based on NOAA/GFS workflow
 export NNODE=16
 export TASKS_PER_NODE=16
-export WRTTASK_PER_GROUP=40
+export WRTTASK_PER_GROUP=40  #number of processors for FV3 to write outputs. Can be changed
 export NTASKS_FV3=$((layout_x*layout_y*6+WRTTASK_PER_GROUP))
 export cores_per_node=40
 #- mountain blocking, ogwd, cgwd, cgwd src scaling
@@ -94,8 +97,9 @@ export LONB=${LONB:-$LONB_CASE}
 export LATB=${LATB:-$LATB_CASE}
 export LONB_IMO=${LONB_IMO:-$LONB_CASE}
 export LATB_JMO=${LATB_JMO:-$LATB_CASE}
-export npz=64
-export LEVS=65
+## to remove export npz=64
+LEVS=$((NPZ+1))
+export LEVS=$LEVS
 ###  -------------------------------------------------------------
 ### CASE config
 
@@ -103,7 +107,7 @@ export LEVS=65
 export HOMEgfs=/work/noaa/da/cmartin/noscrub/UFO_eval/global-workflow
 export FCSTEXECDIR=$HOMEgfs/sorc/fv3gfs.fd/NEMS/exe
 export FCSTEXEC=global_fv3gfs.x
-export FIX_DIR=/work/noaa/da/hailingz/fix/fv3/cory
+export FIX_DIR=/work2/noaa/da/hailingz/work/fv3-workflow/fix
 export FIX_AM=${FIX_DIR}/fix_am
 export FIXfv3=${FIX_DIR}/fix_fv3_gmted2010
 export PARMgfs=${HOMEgfs}/parm

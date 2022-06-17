@@ -2,12 +2,11 @@
 
 #===============================================================================
 # To run this suite, you *will* need to change the following variables:
-{% set email_address = "your.email@address.here" %}
-{% set jedi_code_location = "/path/to/JEDI/code" %}  # this need to point Hailing
+{% set email_address = "huishao@ucar.edu" %}
 #===============================================================================
 
 [meta]
-    title = " run a cycling JEDI-based DA system "
+    title = " run a cycling hybrid 3DEnVar JEDI-based DA system using ensembles converted Gaussian grid forecasts "
     description = "Forecast + Observation Ingest + H(x) + Solver"
 
 ############################
@@ -23,16 +22,16 @@
 [scheduling]
     initial cycle point constraints = T00,T06,T12,T18
     final cycle point constraints   = T00,T06,T12,T18
-    initial cycle point             = 20210104T00
-    final cycle point               = 20210104T12
-    max active cycle points         = 5
+    initial cycle point             = 20210801T12
+    final cycle point               = 20210831T18
+    max active cycle points         = 6
 
 
     [[special tasks]]
         # these tasks can be told to run at a delay from real time
 #       clock-triggered = RetrieveAuxData(PT48H)
         # these tasks are forced to run sequentially even if all dependencies are satisfied
-#       sequential      = BiasCorrection
+        sequential      = JEDIDiagnostics
 
     [[dependencies]]
 
@@ -43,20 +42,21 @@
         [[[R1]]]
             graph  = """
                 # Need to set up directories first
-                ColdPrepJEDI      => ColdRunJEDI
-                ColdRunJEDI       => ColdPrepForecast
-                ColdPrepForecast  => ColdRunForecast
+                ColdPrepJEDI                        => RunJEDI
+                RunJEDI                             => PrepDiagnostics & PrepForecast
+                PrepForecast                        => RunForecast
+                RunForecast                         => PostForecast
                 """
         # This defines normal cycling
         # components for observation processing, data assimilation, forecast
         [[[^+PT6H/PT6H]]]
             graph  = """
                 # Do the main NWP cycle
-                ColdRunForecast[-PT6H]  => PrepJEDI
-                RunForecast[-PT6H]:succeed-all      => PrepJEDI
-                PrepJEDI:succeed-all    => RunJEDI
-                RunJEDI:succeed-all     => PrepForecast
-                PrepForecast:succeed-all            => RunForecast
+                PostForecast[-PT6H]                 => PrepJEDI
+                PrepJEDI                            => RunJEDI
+                RunJEDI                             => PrepDiagnostics & PrepForecast
+                PrepForecast                        => RunForecast
+                RunForecast                         => PostForecast
                 """
 
         # These are the tasks that *always* cycle every 6 hours,
@@ -66,6 +66,11 @@
 #               RetrieveAuxData => GetAGRMET
 #               GetAGRMET => GetSST
 #               """
+#        # This task runs only at 00UTC once per day
+        [[[T00]]]
+            graph  = """
+                PrepDiagnostics                     => JEDIDiagnostics
+                """
 
 [runtime]
     [[root]]
@@ -77,25 +82,9 @@
             ulimit -v unlimited
             set -x
             """
-        pre-script = """
-            . ${SCRIPT_DIR}/setup.sh
-            """
+
         [[[simulation mode]]]
             run time range = PT2S, PT3S # in simulation mode, 2 seconds per task
-
-        [[[job]]]
-            batch system = slurm
-            execution time limit = PT1H
-        [[[directives]]]
-            --exclusive = 
-            --cpus-per-task = 1
-            # total cores
-            --ntasks = {{ NTASKS_JEDI }}
-            # total nodes
-            --time = "00:30:00"
-            --account = {{ HPC_ACCOUNT }}
-            --partition = {{ PBS_PARTITION }}
-            --qos = {{ PBS_QUEUE }}
 
         [[[environment]]] 
 #           LOG_DIR  = $CYLC_SUITE_SHARE_DIR/$CYLC_TASK_CYCLE_POINT/logs
@@ -105,29 +94,39 @@
 
             USE_METASCHEDULAR   = T
 
-####        ROTDIR =    # need to define this
             CYCLING_SCRIPT_HOME  = {{ CYCLING_SCRIPT_HOME }}
             SCRIPT_DIR    = "${CYCLING_SCRIPT_HOME}/da-fcst/workflow"
             TEMPLATE_DIR  = "${CYCLING_SCRIPT_HOME}/da-fcst/template"
 
             CYLC_SUITE_REG_PATH = "${CYLC_SUITE_NAME//.//}"
-            EXPT     = $(echo $CYLC_SUITE_NAME | awk -F. '{print $NF}')
-            SCRATCH  = ${WORKDIR}/scratch/${CYLC_SUITE_REG_PATH}
-            TOP_DIR  = ${WORKDIR}/${CYLC_SUITE_REG_PATH}
-            CDATE    = $(cylc cycle-point --template=%Y%m%d%H)
-            INIT_DATE= $(cylc cycle-point --template=%Y%m%d%H ${CYLC_SUITE_INITIAL_CYCLE_POINT})
-            DATA_DIR = ${TOP_DIR}/Data
-            BUMP_DIR = ${TOP_DIR}/Data/bump
+            #FV3_BUNDLE     = /work/noaa/da/hailingz/jedi/src/fv3-bundle_202201
+            #FV3_BUNDLE_BUILD = /work/noaa/da/hailingz/jedi/build/fv3-bundle_202201
+            #FV3_BUNDLE     = /work/noaa/da/hshao/JEDI/fv3-bundle_20220420/fv3-bundle
+            FV3_BUNDLE     = /work2/noaa/da/haydenlj/jedi/fv3-bundle_20220420/fv3-bundle
+            FV3_BUNDLE_BUILD = ${FV3_BUNDLE}/build
+            EXPT           = $(echo $CYLC_SUITE_NAME | awk -F. '{print $NF}')
+            SCRATCH        = ${WORKDIR}/scratch/${CYLC_SUITE_REG_PATH}
+            TOP_DIR        = ${WORKDIR}/scratch/${CYLC_SUITE_REG_PATH}
+            INPUT_DATA_DIR = /work/noaa/da/bruston/jedi/fv3
+            PREP_DATA_DIR  = /work2/noaa/da/hailingz/work/Data/
+            OBS_DIR        = ${PREP_DATA_DIR}/ioda
+            DATA_REPOS     = ${WORKDIR}/data_repos/
 
-            DAmethod    =  3dhyb
-            RES         =  384
-            CASE        =  C${RES}
-            assim_freq  =  6
+            CDATE          = $(cylc cycle-point --template=%Y%m%d%H)
+            DATA_DIR       = ${TOP_DIR}/Data
+            BUMP_DIR       = ${DATA_DIR}/bump
+
+            DAmethod      =  hyb3dvar_ens-gaussian2restart_C2-sonde-ops
+            RES           =  384
+            CASE          =  C${RES}
+            assim_freq    =  6
+            NPZ           =  127   
+            INIT_DATE     = $(cylc cycle-point --template=%Y%m%d%H --offset-hours=-$assim_freq ${CYLC_SUITE_INITIAL_CYCLE_POINT})
             PREDATE       = $(cylc cycle-point --offset-hours=-$assim_freq --template=%Y%m%d%H)
             yyyymmdd_pre  = $(cylc cycle-point --offset-hours=-$assim_freq --template=%Y%m%d)
             hh_pre        = $(cylc cycle-point --offset-hours=-$assim_freq --template=%H)
 
-        [[[event hooks]]]
+        [[[events]]]
             failed handler            = cylc email-task
             submission failed handler = cylc email-task
 

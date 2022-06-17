@@ -15,17 +15,15 @@
             . ${SCRIPT_DIR}/setup.sh
             . ${SCRIPT_DIR}/setupjedi.sh
             """
-        [[[environment]]]
-            OPTS = ("vertlayer:full"  "use_compress:1"  "super_ref_qc:NBAM"  "sr_steps:2")
-
-    [[PrepJEDI]]
+    [[PrepJEDIdefault]]
         inherit = SetupJEDI
-        title = "Create the JEDI script to be run"
+        title = "Create the default JEDI script to be run"
         description = """
                 Call a templating routine to setup JEDI
-                for particular cycle and configuration
+                for default cycle and configuration
         """
         script = """
+            . ${SCRIPT_DIR}/setupjedi.sh
             [[ ! -d ${rundir} ]]       &&  mkdir -p ${rundir}
             [[ ! -d ${rundir}/log ]]   &&  mkdir -p ${rundir}/log
             [[ ! -d ${hofxout} ]]      &&  mkdir -p ${hofxout}
@@ -35,39 +33,52 @@
 
             # ensemble members and initial restart are symbolic link
             [[ ! -d ${DATA_DIR}/ens_c384 ]]  &&  mkdir -p ${DATA_DIR}/ens_c384
-            ln -sf /work/noaa/da/bruston/jedi/fv3/ensemble/c384/enkfgdas.${PREDATE:0:8} ${DATA_DIR}/ens_c384/.
+            ln -sf ${INPUT_DATA_DIR}/ensemble/c${RES}_gaussian2restart/enkfgdas.${CDATE:0:8}/ ${DATA_DIR}/ens_c384/.
 
             # link the observation data
-            ln -sf /work/noaa/da/hailingz/work/c2nwp/Data/ioda2 ${DATA_DIR}/.
+            ln -sf ${OBS_DIR} ${DATA_DIR}/.
 
             # link the static background error
-            ln -sf /work/noaa/da/hailingz/work/c2nwp/Data/bump/${BUMP_name} ${BUMP_DIR}/.
+            #TODO: BUMP_name is defined in the script but not in the rc files. Not optimal!
+            ln -sf ${PREP_DATA_DIR}/bump_202205/${BUMP_name}   ${BUMP_DIR}/.
 
             # call templating script
             sh ${TEMPLATE_DIR}/template_${DAmethod}_yaml.sh "${OPTS[@]}"
-            cp 3dhyb.yaml ${TOP_DIR}/${CDATE}/.
+            cp ${DAmethod}.yaml ${TOP_DIR}/${CDATE}/.
         """ 
 
         [[[environment]]]
-            rundir = ${TOP_DIR}/${CDATE}    # can use cylc workdir?
+            rundir = ${TOP_DIR}/${CDATE}/da   
             hofxout = ${rundir}/output/hofx
             analysisout = ${rundir}/output/RESTART
+            staticB_TOP = /work/noaa/da/menetrie/regrid/c384/bump_1.0
             BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
-            ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}
+            ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${CDATE:0:8}/${CDATE:8:2}/atmos
+            dtg    = $(cylc cycle-point --template=%Y%m%d.%H0000)
+            dtg_e    = $(cylc cycle-point --template=%Y%m%d.%H0000)
 
         [[[job]]]
             batch system = background
 
     [[ColdPrepJEDI]]
-        inherit = PrepJEDI
+        inherit = PrepJEDIdefault
         title = "Create the Initial time JEDI script to be run"
         description = """
                 Call a templating routine to setup JEDI
-                for particular cycle and configuration
+                for coldstart cycle and configuration
         """
-        [[[environment]]]
-            BKG_path  =  ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}/mem001/RESTART
+        post-script = """
+            [[ ! -d ${TOP_DIR}/${PREDATE}/atmos ]]  &&  mkdir -p ${TOP_DIR}/${PREDATE}/atmos
+            ln -sf /work/noaa/da/bruston/jedi/fv3/c${RES}_gdas/gdas.${PREDATE:0:8}/${PREDATE:8:2}/atmos/RESTART ${TOP_DIR}/${PREDATE}/atmos
+        """
 
+    [[PrepJEDI]]
+        inherit = PrepJEDIdefault
+        title = "Create the JEDI script to be run"
+        description = """
+                Call a templating routine to setup JEDI
+                for cycle and configuration
+        """
 
     [[RunJEDI]]
         inherit = SetupJEDI
@@ -76,22 +87,90 @@
                 Run the JEDI solver
         """
         script = """
-            cd ${BUMP_DIR}
-            {{MPI_RUN}} {{MPI_ARGS}} ${JEDIbin}/fv3jedi_var.x ${TOP_DIR}/${CDATE}/${DAmethod}.yaml
+            cd $rundir
+            ln -sf ${BUMP_DIR}/${BUMP_name} .
+            {{MPI_RUN}} {{MPI_ARGS_JEDI}} ${JEDIbin}/fv3jedi_var.x ${TOP_DIR}/${CDATE}/${DAmethod}.yaml
         """
 
         [[[environment]]]
-            rundir = ${TOP_DIR}/${CDATE}    # can use cylc workdir?
+            rundir = ${TOP_DIR}/${CDATE}/da    # can use cylc workdir?
             hofxout = ${rundir}/output/hofx
             analysisout = ${rundir}/output/RESTART
             BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
-            ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}
+            ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${CDATE:0:8}/${CDATE:8:2}/atmos
 
-    [[ColdRunJEDI]]
-        inherit = RunJEDI
-        title = "Run the Cold start of JEDI observation processing and solver"
-        description = """
-                Run the JEDI solver
+  [[PrepDiagnostics]]
+        pre-script = """
+            echo "over-ride default pre-script"
+            if [[ ! -d ${SCRATCH}/${CDATE}/graphics ]]; then
+                mkdir -p ${SCRATCH}/${CDATE}/graphics
+            fi
+
+            if [[ ! -d ${SCRATCH}/${CDATE}/Data ]]; then
+                mkdir -p ${SCRATCH}/${CDATE}/Data
+            fi
+            """
+        script = """
+                bash ${WORKDIR}/scripts/run_ufo_concatenate.sh ${CDATE}
         """
+        [[[meta]]]
+            title = "Concatenate the output from JEDI H(x)"
+            description = """
+                    concatenate the output from the datatypes for plotting
+            """
+
+    [[JEDIDiagnostics]]
+        pre-script = """
+            echo "  note this over-rides any default pre-script"
+            """
+        [[[meta]]]
+            title = "Run JEDI Skylab Diagnostics"
+            description = """
+                    Run Diagnostics for the JEDI Skylab system include fit to observation and convergence diagnostics
+            """
         [[[environment]]]
-            BKG_path  =  ${DATA_DIR}/ens_c${RES}/enkfgdas.${yyyymmdd_pre}/${hh_pre}/mem001/RESTART
+            mypy        = /home/bruston/.local/external/miniconda3/bin/miniconda3/envs/py3/bin/python3
+            skylab_py   = ${WORKDIR}/scripts 
+            atime       = $(cylc cycle-point --template=%Y%m%dT%H00Z)
+            runJEDI     = ${WORKDIR}/cylc-run/${CYLC_SUITE_NAME}/log/job/${atime}/RunJEDI/NN
+            graphics_dir  = ${SCRATCH}/${CDATE}/graphics
+
+    [[PlotIncrement]]
+        inherit = JEDIDiagnostics
+        script = """
+            module load ncl
+            if [[ ! ${CDATE} == ${INIT_DATE} ]]; then
+                cd ${graphics_dir}
+                ncl ${WORKDIR}/work/plot_single_model_level_bkg_ana_increment_q.ncl 'DATADir=${SCRATCH}+"/"' 'anatime=${CDATE}'
+                ncl ${WORKDIR}/work/plot_single_model_level_bkg_ana_increment_t.ncl 'DATADir=${SCRATCH}+"/"' 'anatime=${CDATE}'
+            fi
+        """
+
+    [[PlotConvergence]]
+        inherit = JEDIDiagnostics
+        script = """
+                cd ${SCRATCH}/${CDATE}/Data
+                # plot ATMS
+                afile=${runJEDI}/job.out
+                ${mypy} ${skylab_py}/skylab_convergence.py -d ${CDATE} -i ${afile} -o ${graphics_dir}
+        """
+ 
+        [[[meta]]]
+            title = "Run JEDI Skylab Convergence Diagnostics"
+            description = """
+                    Run Convergence Diagnostics for the JEDI Skylab system
+            """
+
+    [[PlotRaob]]
+        inherit = JEDIDiagnostics
+        script = """
+                cd ${SCRATCH}/${CDATE}/Data
+                # plot radiosonde
+                afile=${SCRATCH}/
+                ${mypy} ${skylab_py}/skylab_raob_mandatory.py -d ${CDATE}  -i ${afile} -o ${graphics_dir}
+        """
+        [[[meta]]]
+            title = "Run JEDI Skylab Raob Diagnostics"
+            description = """
+                    Run Raob Diagnostics for the JEDI Skylab system include fit to observation and convergence diagnostics
+        """
