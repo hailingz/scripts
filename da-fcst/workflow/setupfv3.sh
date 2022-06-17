@@ -69,11 +69,11 @@ fi
 ###  -------------------------------------------------------------
 #- fv3 layout and computing resource 
 export ntiles=6
-export layout_x=6
-export layout_y=6
+export layout_x=6   #layout number of FV3. set up based on NOAA/GFSs workflow
+export layout_y=6   #layout number of FV3. set up based on NOAA/GFS workflow
 export NNODE=16
 export TASKS_PER_NODE=16
-export WRTTASK_PER_GROUP=40
+export WRTTASK_PER_GROUP=40  #number of processors for FV3 to write outputs. Can be changed
 export NTASKS_FV3=$((layout_x*layout_y*6+WRTTASK_PER_GROUP))
 export cores_per_node=40
 #- mountain blocking, ogwd, cgwd, cgwd src scaling

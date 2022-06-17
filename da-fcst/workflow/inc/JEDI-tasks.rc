@@ -39,8 +39,8 @@
             ln -sf ${OBS_DIR} ${DATA_DIR}/.
 
             # link the static background error
-            ln -sf ${PREP_DATA_DIR}/bump/${BUMP_name}   ${BUMP_DIR}/.
-            ln -sf /work2/noaa/da/hailingz/work/Data/StaticBTraining ${DATA_DIR}/.
+            #TODO: BUMP_name is defined in the script but not in the rc files. Not optimal!
+            ln -sf ${PREP_DATA_DIR}/bump_202205/${BUMP_name}   ${BUMP_DIR}/.
 
             # call templating script
             sh ${TEMPLATE_DIR}/template_${DAmethod}_yaml.sh "${OPTS[@]}"
@@ -51,7 +51,7 @@
             rundir = ${TOP_DIR}/${CDATE}/da   
             hofxout = ${rundir}/output/hofx
             analysisout = ${rundir}/output/RESTART
-            staticB_TOP = ${DATA_DIR}/StaticBTraining/c${RES}/bump_1.0
+            staticB_TOP = /work/noaa/da/menetrie/regrid/c384/bump_1.0
             BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
             ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${CDATE:0:8}/${CDATE:8:2}/atmos
             dtg    = $(cylc cycle-point --template=%Y%m%d.%H0000)
@@ -98,3 +98,79 @@
             analysisout = ${rundir}/output/RESTART
             BKG_path = ${TOP_DIR}/${PREDATE}/atmos/RESTART
             ENS_path = ${DATA_DIR}/ens_c${RES}/enkfgdas.${CDATE:0:8}/${CDATE:8:2}/atmos
+
+  [[PrepDiagnostics]]
+        pre-script = """
+            echo "over-ride default pre-script"
+            if [[ ! -d ${SCRATCH}/${CDATE}/graphics ]]; then
+                mkdir -p ${SCRATCH}/${CDATE}/graphics
+            fi
+
+            if [[ ! -d ${SCRATCH}/${CDATE}/Data ]]; then
+                mkdir -p ${SCRATCH}/${CDATE}/Data
+            fi
+            """
+        script = """
+                bash ${WORKDIR}/scripts/run_ufo_concatenate.sh ${CDATE}
+        """
+        [[[meta]]]
+            title = "Concatenate the output from JEDI H(x)"
+            description = """
+                    concatenate the output from the datatypes for plotting
+            """
+
+    [[JEDIDiagnostics]]
+        pre-script = """
+            echo "  note this over-rides any default pre-script"
+            """
+        [[[meta]]]
+            title = "Run JEDI Skylab Diagnostics"
+            description = """
+                    Run Diagnostics for the JEDI Skylab system include fit to observation and convergence diagnostics
+            """
+        [[[environment]]]
+            mypy        = /home/bruston/.local/external/miniconda3/bin/miniconda3/envs/py3/bin/python3
+            skylab_py   = ${WORKDIR}/scripts 
+            atime       = $(cylc cycle-point --template=%Y%m%dT%H00Z)
+            runJEDI     = ${WORKDIR}/cylc-run/${CYLC_SUITE_NAME}/log/job/${atime}/RunJEDI/NN
+            graphics_dir  = ${SCRATCH}/${CDATE}/graphics
+
+    [[PlotIncrement]]
+        inherit = JEDIDiagnostics
+        script = """
+            module load ncl
+            if [[ ! ${CDATE} == ${INIT_DATE} ]]; then
+                cd ${graphics_dir}
+                ncl ${WORKDIR}/work/plot_single_model_level_bkg_ana_increment_q.ncl 'DATADir=${SCRATCH}+"/"' 'anatime=${CDATE}'
+                ncl ${WORKDIR}/work/plot_single_model_level_bkg_ana_increment_t.ncl 'DATADir=${SCRATCH}+"/"' 'anatime=${CDATE}'
+            fi
+        """
+
+    [[PlotConvergence]]
+        inherit = JEDIDiagnostics
+        script = """
+                cd ${SCRATCH}/${CDATE}/Data
+                # plot ATMS
+                afile=${runJEDI}/job.out
+                ${mypy} ${skylab_py}/skylab_convergence.py -d ${CDATE} -i ${afile} -o ${graphics_dir}
+        """
+ 
+        [[[meta]]]
+            title = "Run JEDI Skylab Convergence Diagnostics"
+            description = """
+                    Run Convergence Diagnostics for the JEDI Skylab system
+            """
+
+    [[PlotRaob]]
+        inherit = JEDIDiagnostics
+        script = """
+                cd ${SCRATCH}/${CDATE}/Data
+                # plot radiosonde
+                afile=${SCRATCH}/
+                ${mypy} ${skylab_py}/skylab_raob_mandatory.py -d ${CDATE}  -i ${afile} -o ${graphics_dir}
+        """
+        [[[meta]]]
+            title = "Run JEDI Skylab Raob Diagnostics"
+            description = """
+                    Run Raob Diagnostics for the JEDI Skylab system include fit to observation and convergence diagnostics
+        """

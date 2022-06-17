@@ -23,7 +23,7 @@
     initial cycle point constraints = T00,T06,T12,T18
     final cycle point constraints   = T00,T06,T12,T18
     initial cycle point             = 20210801T12
-    final cycle point               = 20210807T18
+    final cycle point               = 20210831T18
     max active cycle points         = 6
 
 
@@ -31,7 +31,7 @@
         # these tasks can be told to run at a delay from real time
 #       clock-triggered = RetrieveAuxData(PT48H)
         # these tasks are forced to run sequentially even if all dependencies are satisfied
-#       sequential      = BiasCorrection
+        sequential      = JEDIDiagnostics
 
     [[dependencies]]
 
@@ -43,7 +43,7 @@
             graph  = """
                 # Need to set up directories first
                 ColdPrepJEDI                        => RunJEDI
-                RunJEDI                             => PrepForecast
+                RunJEDI                             => PrepDiagnostics & PrepForecast
                 PrepForecast                        => RunForecast
                 RunForecast                         => PostForecast
                 """
@@ -54,7 +54,7 @@
                 # Do the main NWP cycle
                 PostForecast[-PT6H]                 => PrepJEDI
                 PrepJEDI                            => RunJEDI
-                RunJEDI                             => PrepForecast
+                RunJEDI                             => PrepDiagnostics & PrepForecast
                 PrepForecast                        => RunForecast
                 RunForecast                         => PostForecast
                 """
@@ -66,6 +66,11 @@
 #               RetrieveAuxData => GetAGRMET
 #               GetAGRMET => GetSST
 #               """
+#        # This task runs only at 00UTC once per day
+        [[[T00]]]
+            graph  = """
+                PrepDiagnostics                     => JEDIDiagnostics
+                """
 
 [runtime]
     [[root]]
@@ -94,18 +99,24 @@
             TEMPLATE_DIR  = "${CYCLING_SCRIPT_HOME}/da-fcst/template"
 
             CYLC_SUITE_REG_PATH = "${CYLC_SUITE_NAME//.//}"
+            #FV3_BUNDLE     = /work/noaa/da/hailingz/jedi/src/fv3-bundle_202201
+            #FV3_BUNDLE_BUILD = /work/noaa/da/hailingz/jedi/build/fv3-bundle_202201
+            #FV3_BUNDLE     = /work/noaa/da/hshao/JEDI/fv3-bundle_20220420/fv3-bundle
+            FV3_BUNDLE     = /work2/noaa/da/haydenlj/jedi/fv3-bundle_20220420/fv3-bundle
+            FV3_BUNDLE_BUILD = ${FV3_BUNDLE}/build
             EXPT           = $(echo $CYLC_SUITE_NAME | awk -F. '{print $NF}')
             SCRATCH        = ${WORKDIR}/scratch/${CYLC_SUITE_REG_PATH}
             TOP_DIR        = ${WORKDIR}/scratch/${CYLC_SUITE_REG_PATH}
             INPUT_DATA_DIR = /work/noaa/da/bruston/jedi/fv3
             PREP_DATA_DIR  = /work2/noaa/da/hailingz/work/Data/
             OBS_DIR        = ${PREP_DATA_DIR}/ioda
+            DATA_REPOS     = ${WORKDIR}/data_repos/
 
             CDATE          = $(cylc cycle-point --template=%Y%m%d%H)
             DATA_DIR       = ${TOP_DIR}/Data
             BUMP_DIR       = ${DATA_DIR}/bump
 
-            DAmethod      =  hyb3dvar_ens-gaussian2restart
+            DAmethod      =  hyb3dvar_ens-gaussian2restart_C2-sonde-ops
             RES           =  384
             CASE          =  C${RES}
             assim_freq    =  6

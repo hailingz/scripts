@@ -24,8 +24,8 @@ fi
 
 export cycling=.true.
 export RESP=$((RES+1))
-export layout=6
-export NTASKS_JEDI=$((layout*layout*6))
+export layout=7  #The layout number was the layout number BUMP used to generate the static BE
+export NTASKS_JEDI=$((layout*layout*6))  #number of processors for JEDI is determned by BE layout number
 export SEND="YES"
 export NLN="ln -sf"
 export NCP="cp "
